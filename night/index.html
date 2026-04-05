@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sleep Sanctuary Yoga</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --zen-dark: #0f172a;
+            --zen-primary: #818cf8;
+            --zen-accent: #fbbf24;
+        }
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: var(--zen-dark);
+            color: #e2e8f0;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .pose-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .breathing-circle {
+            animation: breathe 8s infinite ease-in-out;
+        }
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); opacity: 0.2; }
+            50% { transform: scale(1.3); opacity: 0.5; }
+        }
+        .timer-svg { transform: rotate(-90deg); }
+        .progress-ring { transition: stroke-dashoffset 1s linear; }
+        
+        .main-pose-img {
+            width: 100%;
+            height: 280px;
+            object-fit: contain;
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5));
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .rest-mode { filter: grayscale(1) opacity(0.3) blur(5px); transform: scale(0.9); }
+
+        #pose-list::-webkit-scrollbar { width: 4px; }
+        #pose-list::-webkit-scrollbar-track { background: transparent; }
+        #pose-list::-webkit-scrollbar-thumb { background: rgba(129, 140, 248, 0.2); border-radius: 10px; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-4 md:p-8">
+
+    <!-- Background Audio -->
+    <audio id="bg-music" loop>
+        <source src="audio/yoga.mp3" type="audio/mpeg">
+    </audio>
+
+    <div class="max-w-5xl w-full">
+        <!-- Header -->
+        <div class="text-center mb-6 md:mb-10">
+            <h1 class="text-3xl md:text-4xl font-light text-indigo-300 tracking-widest uppercase mb-1">Sleep Sanctuary</h1>
+            <p class="text-slate-500 text-sm">Gentle Flow • Nightly Restoration</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- Left Side: Interactive Player -->
+            <div class="lg:col-span-8 pose-card rounded-[40px] p-6 md:p-10 flex flex-col items-center text-center relative overflow-hidden">
+                
+                <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div id="glow-circle" class="breathing-circle w-80 h-80 bg-indigo-600 rounded-full blur-[80px]"></div>
+                </div>
+
+                <div class="relative z-10 w-full flex flex-col items-center">
+                    
+                    <!-- Image Display Area -->
+                    <div class="mb-6 w-full h-64 md:h-72 flex items-center justify-center">
+                        <img id="pose-display" src="picture/yoga1.png" alt="Yoga Movement" class="main-pose-img">
+                    </div>
+
+                    <!-- Timer Circle -->
+                    <div class="relative inline-flex items-center justify-center mb-8">
+                        <svg class="timer-svg w-40 h-40 md:w-48 md:h-48">
+                            <circle class="text-slate-800" stroke-width="4" stroke="currentColor" fill="transparent" r="75" cx="80" cy="80" md:r="90" md:cx="96" md:cy="96" />
+                            <circle id="progress-bar" class="text-indigo-400 progress-ring" stroke-width="6" stroke-dasharray="565" stroke-dashoffset="0" stroke-linecap="round" stroke="currentColor" fill="transparent" r="75" cx="80" cy="80" md:r="90" md:cx="96" md:cy="96" />
+                        </svg>
+                        <div class="absolute flex flex-col">
+                            <span id="time-left" class="text-5xl md:text-6xl font-light">00</span>
+                            <span class="text-[10px] uppercase tracking-widest text-indigo-400 font-bold">Sec</span>
+                        </div>
+                    </div>
+
+                    <h2 id="pose-title" class="text-2xl md:text-3xl font-bold text-white mb-1 tracking-tight">Ready to Begin?</h2>
+                    <p id="pose-subtitle" class="text-indigo-300 italic mb-8 text-sm md:text-base">Find a quiet space and take a breath</p>
+                    
+                    <button id="action-btn" onclick="handleAction()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 px-14 rounded-full shadow-[0_10px_40px_rgba(79,70,229,0.4)] transition-all transform active:scale-95">
+                        Start Session
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Side: Sidebar -->
+            <div class="lg:col-span-4 flex flex-col gap-5">
+                <div class="pose-card rounded-[30px] p-5">
+                    <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-3">Next Movement</p>
+                    <div id="preview-box" class="flex items-center gap-4 opacity-50">
+                        <div class="w-14 h-14 rounded-2xl bg-slate-900 flex items-center justify-center overflow-hidden border border-white/5">
+                            <img id="next-img" src="picture/yoga2.png" class="w-full h-full object-cover">
+                        </div>
+                        <div>
+                            <p id="next-name" class="font-bold text-white">Hero Pose</p>
+                            <p id="next-status" class="text-xs text-indigo-400">Waiting...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="pose-card rounded-[30px] p-6 flex-grow">
+                    <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-4">Your Sequence</p>
+                    <div id="pose-list" class="space-y-4 overflow-y-auto max-h-[300px] pr-2">
+                        <!-- JS Generated -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const poses = [
+            { id: 1, name: "Hero Pose", s: "Virasana", d: 60, img: "picture/yoga1.png" },
+            { id: 2, name: "Child's Pose", s: "Balasana", d: 60, img: "picture/yoga2.png" },
+            { id: 3, name: "Upward Dog", s: "Urdhva Mukha Svanasana", d: 60, img: "picture/yoga3.png" },
+            { id: 4, name: "Camel Pose", s: "Ustrasana", d: 60, img: "picture/yoga4.png" },
+            { id: 5, name: "Butterfly Pose", s: "Baddha Konasana", d: 60, img: "picture/yoga5.png" },
+            { id: 6, name: "Supine Spinal Twist", s: "Supta Matsyendrasana", d: 60, img: "picture/yoga6.png" },
+            { id: 7, name: "Bridge Pose", s: "Setu Bandha Sarvangasana", d: 60, img: "picture/yoga7.png" },
+            { id: 8, name: "Wind-Relieving Pose", s: "Pawanmuktasana", d: 60, img: "picture/yoga8.png" },
+            { id: 9, name: "Corpse Pose", s: "Savasana", d: 90, img: "picture/yoga9.png" }
+        ];
+
+        let currentIndex = 0;
+        let timeLeft = 0;
+        let timer = null;
+        let sessionActive = false;
+        let isResting = false;
+        const REST_TIME = 15;
+
+        const synth = window.speechSynthesis;
+        const bgMusic = document.getElementById('bg-music');
+
+        function speak(text) {
+            synth.cancel();
+            const msg = new SpeechSynthesisUtterance(text);
+            msg.rate = 0.85;
+            msg.lang = 'en-US';
+            synth.speak(msg);
+        }
+
+        function updateDisplay() {
+            const current = poses[currentIndex];
+            const next = poses[currentIndex + 1];
+            const displayImg = document.getElementById('pose-display');
+
+            if (!isResting) {
+                document.getElementById('pose-title').innerText = current.name;
+                document.getElementById('pose-subtitle').innerText = current.s;
+                displayImg.src = current.img;
+                displayImg.classList.remove('rest-mode');
+                document.getElementById('glow-circle').style.backgroundColor = '#4f46e5';
+            } else {
+                document.getElementById('pose-title').innerText = "Take a Deep Breath";
+                document.getElementById('pose-subtitle').innerText = "Prepare for " + (next ? next.name : "the end");
+                displayImg.classList.add('rest-mode');
+                document.getElementById('glow-circle').style.backgroundColor = '#10b981';
+            }
+
+            if (next) {
+                document.getElementById('next-name').innerText = next.name;
+                document.getElementById('next-img').src = next.img;
+                document.getElementById('next-status').innerText = isResting ? "Starting soon..." : "Up Next";
+            } else {
+                document.getElementById('next-name').innerText = "Session End";
+                document.getElementById('next-status').innerText = "Almost there";
+            }
+            
+            document.querySelectorAll('.pose-item').forEach((el, idx) => {
+                el.style.opacity = idx === currentIndex ? "1" : "0.3";
+                el.style.borderColor = idx === currentIndex ? "rgba(129, 140, 248, 0.5)" : "transparent";
+            });
+        }
+
+        function runTimer() {
+            const total = isResting ? REST_TIME : poses[currentIndex].d;
+            const circumference = 565;
+
+            timer = setInterval(() => {
+                timeLeft--;
+                document.getElementById('time-left').innerText = timeLeft;
+                
+                const offset = circumference - (timeLeft / total) * circumference;
+                document.getElementById('progress-bar').style.strokeDashoffset = offset;
+
+                if (timeLeft === 5 && !isResting) speak("Be ready to take a rest.");
+                if (timeLeft === 3 && isResting) speak("Ready in 3, 2, 1.");
+
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    if (!isResting && currentIndex < poses.length - 1) {
+                        startRest();
+                    } else if (isResting) {
+                        currentIndex++;
+                        startMovement();
+                    } else {
+                        endSession();
+                    }
+                }
+            }, 1000);
+        }
+
+        function startMovement() {
+            isResting = false;
+            timeLeft = poses[currentIndex].d;
+            speak(`Begin ${poses[currentIndex].name}.`);
+            updateDisplay();
+            runTimer();
+        }
+
+        function startRest() {
+            isResting = true;
+            timeLeft = REST_TIME;
+            const next = poses[currentIndex + 1];
+            speak(`Rest. Next is ${next.name}.`);
+            updateDisplay();
+            runTimer();
+        }
+
+        function handleAction() {
+            if (!sessionActive) {
+                sessionActive = true;
+                currentIndex = 0;
+                document.getElementById('action-btn').innerText = "Reset Session";
+                bgMusic.play(); // Start background loop
+                speak(`Starting session. Begin with ${poses[currentIndex].name}.`);
+                startMovement();
+            } else {
+                location.reload();
+            }
+        }
+
+        function endSession() {
+            bgMusic.pause(); // Stop music
+            speak("Session complete. Sleep well.");
+            document.getElementById('pose-title').innerText = "Peaceful Sleep";
+            document.getElementById('pose-subtitle').innerText = "Namaste.";
+            document.getElementById('action-btn').innerText = "Restart";
+            sessionActive = false;
+        }
+
+        const listContainer = document.getElementById('pose-list');
+        poses.forEach((p, i) => {
+            listContainer.innerHTML += `
+                <div class="pose-item flex items-center justify-between p-3 rounded-2xl border transition-all duration-500 opacity-30">
+                    <div class="flex items-center gap-3">
+                        <img src="${p.img}" class="w-10 h-10 rounded-lg object-cover">
+                        <div>
+                            <p class="text-xs font-bold text-white">${p.name}</p>
+                            <p class="text-[10px] text-slate-500">${p.s}</p>
+                        </div>
+                    </div>
+                    <span class="text-[10px] font-bold text-indigo-400">${p.d}s</span>
+                </div>
+            `;
+        });
+    </script>
+</body>
+</html>
