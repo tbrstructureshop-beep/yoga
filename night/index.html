@@ -10,6 +10,7 @@
         :root {
             --zen-dark: #0f172a;
             --zen-primary: #818cf8;
+            --zen-accent: #fbbf24;
         }
         body {
             font-family: 'Nunito', sans-serif;
@@ -49,28 +50,34 @@
 </head>
 <body class="min-h-screen flex flex-col items-center p-4 md:p-8">
 
-    <!-- Background Audio -->
+    <!-- Background Audio with Preload -->
     <audio id="bg-music" loop preload="auto">
         <source src="audio/yoga.mp3" type="audio/mpeg">
     </audio>
 
     <div class="max-w-5xl w-full">
+        <!-- Header -->
         <div class="text-center mb-6 md:mb-10">
             <h1 class="text-3xl md:text-4xl font-light text-indigo-300 tracking-widest uppercase mb-1">Sleep Sanctuary</h1>
             <p class="text-slate-500 text-sm">Gentle Flow • Nightly Restoration</p>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- Left Side: Interactive Player -->
             <div class="lg:col-span-8 pose-card rounded-[40px] p-6 md:p-10 flex flex-col items-center text-center relative overflow-hidden">
+                
                 <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div id="glow-circle" class="breathing-circle w-80 h-80 bg-indigo-600 rounded-full blur-[80px]"></div>
                 </div>
 
                 <div class="relative z-10 w-full flex flex-col items-center">
+                    
+                    <!-- Image Display Area -->
                     <div class="mb-6 w-full h-64 md:h-72 flex items-center justify-center">
                         <img id="pose-display" src="picture/yoga1.png" alt="Yoga Movement" class="main-pose-img">
                     </div>
 
+                    <!-- Timer Circle -->
                     <div class="relative inline-flex items-center justify-center mb-8">
                         <svg class="timer-svg w-40 h-40 md:w-48 md:h-48">
                             <circle class="text-slate-800" stroke-width="4" stroke="currentColor" fill="transparent" r="75" cx="80" cy="80" md:r="90" md:cx="96" md:cy="96" />
@@ -83,7 +90,7 @@
                     </div>
 
                     <h2 id="pose-title" class="text-2xl md:text-3xl font-bold text-white mb-1 tracking-tight">Ready to Begin?</h2>
-                    <p id="pose-subtitle" class="text-indigo-300 italic mb-8 text-sm md:text-base">Background music and guide will start together</p>
+                    <p id="pose-subtitle" class="text-indigo-300 italic mb-8 text-sm md:text-base">Find a quiet space and take a breath</p>
                     
                     <button id="action-btn" onclick="handleAction()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 px-14 rounded-full shadow-[0_10px_40px_rgba(79,70,229,0.4)] transition-all transform active:scale-95">
                         Start Session
@@ -91,6 +98,7 @@
                 </div>
             </div>
 
+            <!-- Right Side: Sidebar -->
             <div class="lg:col-span-4 flex flex-col gap-5">
                 <div class="pose-card rounded-[30px] p-5">
                     <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-3">Next Movement</p>
@@ -106,7 +114,8 @@
                 </div>
                 
                 <div class="pose-card rounded-[30px] p-6 flex-grow">
-                    <div id="pose-list" class="space-y-4 overflow-y-auto max-h-[400px] pr-2">
+                    <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-4">Your Sequence</p>
+                    <div id="pose-list" class="space-y-4 overflow-y-auto max-h-[300px] pr-2">
                         <!-- JS Generated -->
                     </div>
                 </div>
@@ -136,19 +145,27 @@
 
         const synth = window.speechSynthesis;
         const bgMusic = document.getElementById('bg-music');
-        bgMusic.volume = 0.5; // Set base volume
+        
+        // Standard volumes
+        const MUSIC_FULL_VOLUME = 0.4;
+        const MUSIC_DUCK_VOLUME = 0.1;
 
-        // ENHANCED VOICE FUNCTION (Ducks background music volume)
+        // ENHANCED VOICE FUNCTION WITH DUCKING
         function speak(text) {
             synth.cancel();
             const msg = new SpeechSynthesisUtterance(text);
             msg.rate = 0.85;
             msg.lang = 'en-US';
 
-            // Lower music volume when speaking
-            msg.onstart = () => { bgMusic.volume = 0.15; };
-            // Bring music volume back when finished
-            msg.onend = () => { bgMusic.volume = 0.5; };
+            // When voice starts, lower the music volume
+            msg.onstart = () => {
+                bgMusic.volume = MUSIC_DUCK_VOLUME;
+            };
+
+            // When voice ends, restore music volume
+            msg.onend = () => {
+                bgMusic.volume = MUSIC_FULL_VOLUME;
+            };
 
             synth.speak(msg);
         }
@@ -165,8 +182,8 @@
                 displayImg.classList.remove('rest-mode');
                 document.getElementById('glow-circle').style.backgroundColor = '#4f46e5';
             } else {
-                document.getElementById('pose-title').innerText = "Breath & Relax";
-                document.getElementById('pose-subtitle').innerText = "Next: " + (next ? next.name : "End");
+                document.getElementById('pose-title').innerText = "Take a Deep Breath";
+                document.getElementById('pose-subtitle').innerText = "Prepare for " + (next ? next.name : "the end");
                 displayImg.classList.add('rest-mode');
                 document.getElementById('glow-circle').style.backgroundColor = '#10b981';
             }
@@ -174,7 +191,10 @@
             if (next) {
                 document.getElementById('next-name').innerText = next.name;
                 document.getElementById('next-img').src = next.img;
-                document.getElementById('next-status').innerText = isResting ? "Starting..." : "Next";
+                document.getElementById('next-status').innerText = isResting ? "Starting soon..." : "Up Next";
+            } else {
+                document.getElementById('next-name').innerText = "Session End";
+                document.getElementById('next-status').innerText = "Almost there";
             }
             
             document.querySelectorAll('.pose-item').forEach((el, idx) => {
@@ -190,11 +210,12 @@
             timer = setInterval(() => {
                 timeLeft--;
                 document.getElementById('time-left').innerText = timeLeft;
+                
                 const offset = circumference - (timeLeft / total) * circumference;
                 document.getElementById('progress-bar').style.strokeDashoffset = offset;
 
-                if (timeLeft === 5 && !isResting) speak("Five seconds until rest.");
-                if (timeLeft === 3 && isResting) speak("3, 2, 1, Begin.");
+                if (timeLeft === 5 && !isResting) speak("Be ready to take a rest.");
+                if (timeLeft === 3 && isResting) speak("Ready in 3, 2, 1.");
 
                 if (timeLeft <= 0) {
                     clearInterval(timer);
@@ -213,62 +234,68 @@
         function startMovement() {
             isResting = false;
             timeLeft = poses[currentIndex].d;
-            updateDisplay();
             speak(`Begin ${poses[currentIndex].name}.`);
+            updateDisplay();
             runTimer();
         }
 
         function startRest() {
             isResting = true;
             timeLeft = REST_TIME;
-            updateDisplay();
             const next = poses[currentIndex + 1];
-            speak(`Time to rest. Relax. Next movement is ${next.name}.`);
+            speak(`Rest. Next is ${next.name}.`);
+            updateDisplay();
             runTimer();
         }
 
-        // ENHANCED START (Handles both music and voice initialization)
+        // ENHANCED HANDLE ACTION (Async to handle browser play policies)
         async function handleAction() {
             if (!sessionActive) {
                 sessionActive = true;
                 currentIndex = 0;
                 document.getElementById('action-btn').innerText = "Reset Session";
-
+                
                 try {
-                    // Force browser to play MP3
+                    bgMusic.volume = MUSIC_FULL_VOLUME;
                     await bgMusic.play();
-                } catch (e) { console.log("Audio play blocked", e); }
+                } catch (err) {
+                    console.log("Audio play was prevented by browser.");
+                }
 
-                // Small delay to allow audio buffer
+                // Add a small delay so music and speech don't start at the exact same millisecond
                 setTimeout(() => {
-                    speak(`Welcome to your nightly practice. Let's start with ${poses[currentIndex].name}.`);
+                    speak(`Starting session. Begin with ${poses[currentIndex].name}.`);
                     startMovement();
-                }, 600);
+                }, 500);
+                
             } else {
-                bgMusic.pause();
                 location.reload();
             }
         }
 
         function endSession() {
-            bgMusic.pause();
-            speak("Your practice is complete. Sleep well. Namaste.");
+            bgMusic.pause(); 
+            speak("Session complete. Sleep well.");
             document.getElementById('pose-title').innerText = "Peaceful Sleep";
+            document.getElementById('pose-subtitle').innerText = "Namaste.";
             document.getElementById('action-btn').innerText = "Restart";
             sessionActive = false;
         }
 
-        // Build list
         const listContainer = document.getElementById('pose-list');
         poses.forEach((p, i) => {
             listContainer.innerHTML += `
-                <div class="pose-item flex items-center justify-between p-3 rounded-2xl border border-transparent transition-all duration-500 opacity-30">
+                <div class="pose-item flex items-center justify-between p-3 rounded-2xl border transition-all duration-500 opacity-30">
                     <div class="flex items-center gap-3">
                         <img src="${p.img}" class="w-10 h-10 rounded-lg object-cover">
-                        <div><p class="text-xs font-bold text-white">${p.name}</p><p class="text-[10px] text-slate-500">${p.s}</p></div>
+                        <div>
+                            <p class="text-xs font-bold text-white">${p.name}</p>
+                            <p class="text-[10px] text-slate-500">${p.s}</p>
+                        </div>
                     </div>
                     <span class="text-[10px] font-bold text-indigo-400">${p.d}s</span>
-                </div>`;
+                </div>
+            `;
         });
     </script>
 </body>
