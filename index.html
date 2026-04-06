@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yoga Sanctuary | Choose Your Flow</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --zen-dark: #0f172a;
+        }
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: var(--zen-dark);
+            color: #e2e8f0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-card:hover {
+            background: rgba(255, 255, 255, 0.07);
+            transform: translateY(-10px);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        .morning-hover:hover {
+            box-shadow: 0 20px 50px rgba(251, 191, 36, 0.15);
+        }
+        .night-hover:hover {
+            box-shadow: 0 20px 50px rgba(129, 140, 248, 0.15);
+        }
+        .bg-glow {
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            border-radius: 50%;
+            filter: blur(100px);
+            z-index: -1;
+            opacity: 0.2;
+        }
+    </style>
+</head>
+<body class="p-6">
+
+    <!-- Background Decoration -->
+    <div class="bg-glow bg-amber-500 -top-20 -left-20"></div>
+    <div class="bg-glow bg-indigo-600 -bottom-20 -right-20"></div>
+
+    <div class="max-w-4xl w-full text-center">
+        <header class="mb-12">
+            <h1 class="text-4xl md:text-5xl font-light text-white tracking-[0.2em] uppercase mb-3">Yoga Sanctuary</h1>
+            <p class="text-slate-400 tracking-widest text-sm uppercase">Align your body with the rhythm of the day</p>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            
+            <!-- Morning Option -->
+            <a href="morning/index.html" class="group">
+                <div class="glass-card morning-hover rounded-[40px] p-10 h-full flex flex-col items-center justify-center relative overflow-hidden">
+                    <div class="mb-6 text-6xl group-hover:scale-110 transition-transform duration-500">🌅</div>
+                    <h2 class="text-2xl font-bold text-amber-300 tracking-widest uppercase mb-2">Morning Flow</h2>
+                    <p class="text-slate-400 text-sm mb-6">Energize • Awaken • Focus</p>
+                    <div class="px-6 py-2 rounded-full border border-amber-300/30 text-amber-300 text-xs font-bold uppercase tracking-widest group-hover:bg-amber-300 group-hover:text-black transition-colors">
+                        Start Awakening
+                    </div>
+                    
+                    <!-- Decorative element -->
+                    <div class="absolute -bottom-4 -right-4 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl"></div>
+                </div>
+            </a>
+
+            <!-- Night Option -->
+            <a href="night/index.html" class="group">
+                <div class="glass-card night-hover rounded-[40px] p-10 h-full flex flex-col items-center justify-center relative overflow-hidden">
+                    <div class="mb-6 text-6xl group-hover:scale-110 transition-transform duration-500">🌙</div>
+                    <h2 class="text-2xl font-bold text-indigo-300 tracking-widest uppercase mb-2">Night Restore</h2>
+                    <p class="text-slate-400 text-sm mb-6">Decompress • Relax • Sleep</p>
+                    <div class="px-6 py-2 rounded-full border border-indigo-400/30 text-indigo-300 text-xs font-bold uppercase tracking-widest group-hover:bg-indigo-400 group-hover:text-black transition-colors">
+                        Enter Sanctuary
+                    </div>
+
+                    <!-- Decorative element -->
+                    <div class="absolute -bottom-4 -right-4 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl"></div>
+                </div>
+            </a>
+
+        </div>
+
+        <footer class="mt-16">
+            <p class="text-slate-600 text-[10px] uppercase tracking-[0.3em]">Choose a session to begin your practice</p>
+        </footer>
+    </div>
+
+</body>
+</html>
