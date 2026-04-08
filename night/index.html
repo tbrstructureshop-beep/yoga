@@ -66,7 +66,8 @@
 
     <!-- Background Audio -->
     <audio id="bg-music" loop>
-        <source src="https://drive.google.com/uc?export=download&id=1VpIPkS5ZiI4A04DT_7j5R9KTu2KZ61UJ" type="audio/mpeg">
+        <!-- Corrected Google Drive URL -->
+        <source src="https://docs.google.com/uc?export=download&id=1VpIPkS5ZiI4A04DT_7j5R9KTu2KZ61UJ" type="audio/mpeg">
     </audio>
 
     <div class="max-w-5xl w-full">
@@ -274,7 +275,15 @@
                 document.getElementById('button-text').innerText = "Reset Session";
                 
                 showSpinner();
-                bgMusic.play().catch(e => console.error("Error playing background music:", e)); // Start background loop
+                // Play music and catch potential errors for better debugging
+                try {
+                    await bgMusic.play();
+                } catch (e) {
+                    console.error("Error playing background music:", e);
+                    // Optionally, inform the user or try a different approach
+                    alert("Could not play background music. Please check your browser settings or try again.");
+                }
+                
                 await speak(`Starting session. Begin with ${poses[currentIndex].name}.`);
                 hideSpinner();
                 
