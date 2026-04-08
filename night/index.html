@@ -64,9 +64,9 @@
 </head>
 <body class="min-h-screen flex flex-col items-center p-4 md:p-8">
 
-    <!-- Background Audio - Added 'preload="auto"' -->
+    <!-- Background Audio - Corrected Google Drive URL as per Stack Overflow guidance -->
     <audio id="bg-music" loop preload="auto">
-        <source src="https://docs.google.com/uc?export=download&id=1VpIPkS5ZiI4A04DT_7j5R9KTu2KZ61UJ" type="audio/mpeg">
+        <source src="https://drive.google.com/uc?export=download&id=1VpIPkS5ZiI4A04DT_7j5R9KTu2KZ61UJ" type="audio/mpeg">
     </audio>
 
     <div class="max-w-5xl w-full">
@@ -275,31 +275,26 @@
                 
                 showSpinner();
                 
-                // Wait for the background music to be ready to play
-                // or at least for its metadata to be loaded
                 try {
-                    // This creates a promise that resolves when enough data is loaded to play
                     const musicReadyPromise = new Promise((resolve, reject) => {
-                        if (bgMusic.readyState >= 2) { // HAVE_CURRENT_DATA or more
+                        if (bgMusic.readyState >= 2) { 
                             resolve();
                         } else {
                             bgMusic.addEventListener('canplaythrough', resolve, { once: true });
                             bgMusic.addEventListener('error', reject, { once: true });
-                            // A timeout in case 'canplaythrough' never fires due to issues
                             setTimeout(() => reject(new Error("Music loading timed out.")), 10000); 
                         }
                     });
 
                     await musicReadyPromise;
-                    await bgMusic.play(); // Attempt to play only after it's ready
+                    await bgMusic.play(); 
                 } catch (e) {
                     console.error("Error playing background music:", e);
-                    // Inform the user, but don't block the rest of the app
-                    alert("Warning: Could not play background music. Please check your internet connection and browser settings. The session will continue without music.");
+                    alert("Warning: Could not play background music. Please check your internet connection and browser settings, and ensure the Google Drive file is publicly accessible with the correct shareable link structure. The session will continue without music.");
                 }
                 
                 await speak(`Starting session. Begin with ${poses[currentIndex].name}.`);
-                hideSpinner(); // Hide spinner after music *and* speech are ready/finished
+                hideSpinner(); 
                 
                 startMovement();
             } else {
@@ -308,7 +303,7 @@
         }
 
         async function endSession() {
-            bgMusic.pause(); // Stop music
+            bgMusic.pause(); 
             await speak("Session complete. Sleep well.");
             document.getElementById('pose-title').innerText = "Peaceful Sleep";
             document.getElementById('pose-subtitle').innerText = "Namaste.";
