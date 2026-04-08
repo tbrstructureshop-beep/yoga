@@ -64,9 +64,9 @@
 </head>
 <body class="min-h-screen flex flex-col items-center p-4 md:p-8">
 
-    <!-- Background Audio - Corrected Google Drive URL as per Stack Overflow guidance -->
+    <!-- Background Audio - Corrected GitHub Raw URL -->
     <audio id="bg-music" loop preload="auto">
-        <source src="https://drive.google.com/uc?export=download&id=1VpIPkS5ZiI4A04DT_7j5R9KTu2KZ61UJ" type="audio/mpeg">
+        <source src="https://raw.githubusercontent.com/tbrstructureshop-beep/yoga/fe8aefb136b943563b8f6b1e8b7c24225d0b37fd/night/audio/9e00df5b-66c4-474f-af22-d6f1718a6a92.mp3" type="audio/mpeg">
     </audio>
 
     <div class="max-w-5xl w-full">
@@ -290,7 +290,7 @@
                     await bgMusic.play(); 
                 } catch (e) {
                     console.error("Error playing background music:", e);
-                    alert("Warning: Could not play background music. Please check your internet connection and browser settings, and ensure the Google Drive file is publicly accessible with the correct shareable link structure. The session will continue without music.");
+                    alert("Warning: Could not play background music. Please check your internet connection and browser settings. The session will continue without music.");
                 }
                 
                 await speak(`Starting session. Begin with ${poses[currentIndex].name}.`);
