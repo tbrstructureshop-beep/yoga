@@ -6,6 +6,8 @@
     <title>Sleep Sanctuary Yoga</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;700&display=swap" rel="stylesheet">
+    <!-- Add this line for the favicon/logo -->
+    <link rel="icon" href="/yoga/night/picture/yogaLogo.png" type="image/png">
     <style>
         :root {
             --zen-dark: #0f172a;
@@ -65,7 +67,7 @@
 <body class="min-h-screen flex flex-col items-center p-4 md:p-8">
 
     <!-- Background Audio - Corrected GitHub Raw URL -->
-    <audio id="bg-music" loop preload="auto">
+    <audio id="bg-music" loop preload="auto" volume="0">
         <source src="https://raw.githubusercontent.com/tbrstructureshop-beep/yoga/fe8aefb136b943563b8f6b1e8b7c24225d0b37fd/night/audio/9e00df5b-66c4-474f-af22-d6f1718a6a92.mp3" type="audio/mpeg">
     </audio>
 
@@ -157,6 +159,7 @@
         let sessionActive = false;
         let isResting = false;
         const REST_TIME = 15;
+        const MUSIC_VOLUME = 0.1; // Adjust this value for desired background music volume
 
         const synth = window.speechSynthesis;
         const bgMusic = document.getElementById('bg-music');
@@ -189,6 +192,35 @@
             });
         }
 
+        function fadeInMusic(audioElement, targetVolume, duration) {
+            let volume = audioElement.volume;
+            const step = (targetVolume - volume) / (duration / 100); // adjust 100ms interval
+            const fadeInterval = setInterval(() => {
+                if (volume < targetVolume) {
+                    volume += step;
+                    audioElement.volume = Math.min(volume, targetVolume);
+                } else {
+                    clearInterval(fadeInterval);
+                    audioElement.volume = targetVolume;
+                }
+            }, 100);
+        }
+
+        function fadeOutMusic(audioElement, duration) {
+            let volume = audioElement.volume;
+            const step = volume / (duration / 100); // adjust 100ms interval
+            const fadeInterval = setInterval(() => {
+                if (volume > 0) {
+                    volume -= step;
+                    audioElement.volume = Math.max(volume, 0);
+                } else {
+                    clearInterval(fadeInterval);
+                    audioElement.pause();
+                    audioElement.volume = 0; // Ensure it's fully silent
+                }
+            }, 100);
+        }
+
         function updateDisplay() {
             const current = poses[currentIndex];
             const next = poses[currentIndex + 1];
@@ -200,11 +232,13 @@
                 displayImg.src = current.img;
                 displayImg.classList.remove('rest-mode');
                 document.getElementById('glow-circle').style.backgroundColor = '#4f46e5';
+                fadeInMusic(bgMusic, MUSIC_VOLUME, 1000); // Fade in music when movement starts
             } else {
                 document.getElementById('pose-title').innerText = "Take a Deep Breath";
                 document.getElementById('pose-subtitle').innerText = "Prepare for " + (next ? next.name : "the end");
                 displayImg.classList.add('rest-mode');
                 document.getElementById('glow-circle').style.backgroundColor = '#10b981';
+                fadeOutMusic(bgMusic, 1000); // Fade out music during rest
             }
 
             if (next) {
@@ -262,7 +296,7 @@
             isResting = true;
             timeLeft = REST_TIME;
             const next = poses[currentIndex + 1];
-            await speak(`Rest. Next is ${next.name}.`);
+            await speak(`Rest. Next is ${next ? next.name : "the end"}.`); // Added check for next pose
             updateDisplay();
             runTimer();
         }
@@ -276,34 +310,28 @@
                 showSpinner();
                 
                 try {
-                    const musicReadyPromise = new Promise((resolve, reject) => {
-                        if (bgMusic.readyState >= 2) { 
-                            resolve();
-                        } else {
-                            bgMusic.addEventListener('canplaythrough', resolve, { once: true });
-                            bgMusic.addEventListener('error', reject, { once: true });
-                            setTimeout(() => reject(new Error("Music loading timed out.")), 10000); 
-                        }
-                    });
-
-                    await musicReadyPromise;
+                    // Start playing music (initially silent)
                     await bgMusic.play(); 
+                    bgMusic.volume = 0; // Start at 0 volume
+
+                    // Wait for speech to complete
+                    await speak(`Starting session. Begin with ${poses[currentIndex].name}.`);
+                    hideSpinner(); 
+                    
+                    startMovement();
                 } catch (e) {
-                    console.error("Error playing background music:", e);
-                    alert("Warning: Could not play background music. Please check your internet connection and browser settings. The session will continue without music.");
+                    console.error("Error during session start:", e);
+                    alert("Warning: An issue occurred. Music or speech might not be playing. The session will continue.");
+                    hideSpinner(); // Hide spinner even on error
+                    startMovement(); // Attempt to start movement even if audio failed
                 }
-                
-                await speak(`Starting session. Begin with ${poses[currentIndex].name}.`);
-                hideSpinner(); 
-                
-                startMovement();
             } else {
                 location.reload();
             }
         }
 
         async function endSession() {
-            bgMusic.pause(); 
+            fadeOutMusic(bgMusic, 2000); // Fade out music when session ends
             await speak("Session complete. Sleep well.");
             document.getElementById('pose-title').innerText = "Peaceful Sleep";
             document.getElementById('pose-subtitle').innerText = "Namaste.";
