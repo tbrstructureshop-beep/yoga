@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;700&display=swap" rel="stylesheet">
     <!-- Add this line for the favicon/logo -->
-    <link rel="icon" href="/yoga/night/picture/yogaLogo.png" type="image/png">
+    <link rel="icon" href="../night/picture/yogaLogo.png" type="image/png">
     <style>
         :root {
             --zen-dark: #0f172a;
@@ -160,6 +160,7 @@
         let isResting = false;
         const REST_TIME = 15;
         const MUSIC_VOLUME = 0.1; // Adjust this value for desired background music volume
+        const FADE_DURATION = 1000; // 1 second fade
 
         const synth = window.speechSynthesis;
         const bgMusic = document.getElementById('bg-music');
@@ -193,8 +194,12 @@
         }
 
         function fadeInMusic(audioElement, targetVolume, duration) {
+            if (audioElement.paused) {
+                audioElement.play();
+                audioElement.volume = 0; // Ensure it starts from silent
+            }
             let volume = audioElement.volume;
-            const step = (targetVolume - volume) / (duration / 100); // adjust 100ms interval
+            const step = (targetVolume - volume) / (duration / 50); // adjust 50ms interval for smoother fade
             const fadeInterval = setInterval(() => {
                 if (volume < targetVolume) {
                     volume += step;
@@ -203,22 +208,25 @@
                     clearInterval(fadeInterval);
                     audioElement.volume = targetVolume;
                 }
-            }, 100);
+            }, 50);
         }
 
-        function fadeOutMusic(audioElement, duration) {
+        function fadeOutMusic(audioElement, targetVolume, duration, shouldPause = false) {
             let volume = audioElement.volume;
-            const step = volume / (duration / 100); // adjust 100ms interval
+            const step = (volume - targetVolume) / (duration / 50); // adjust 50ms interval
             const fadeInterval = setInterval(() => {
-                if (volume > 0) {
+                if (volume > targetVolume) {
                     volume -= step;
-                    audioElement.volume = Math.max(volume, 0);
+                    audioElement.volume = Math.max(volume, targetVolume);
                 } else {
                     clearInterval(fadeInterval);
-                    audioElement.pause();
-                    audioElement.volume = 0; // Ensure it's fully silent
+                    audioElement.volume = targetVolume;
+                    if (shouldPause) {
+                        audioElement.pause();
+                        audioElement.currentTime = 0; // Reset to start for next session
+                    }
                 }
-            }, 100);
+            }, 50);
         }
 
         function updateDisplay() {
@@ -232,13 +240,14 @@
                 displayImg.src = current.img;
                 displayImg.classList.remove('rest-mode');
                 document.getElementById('glow-circle').style.backgroundColor = '#4f46e5';
-                fadeInMusic(bgMusic, MUSIC_VOLUME, 1000); // Fade in music when movement starts
+                fadeInMusic(bgMusic, MUSIC_VOLUME, FADE_DURATION); // Fade in music when movement starts
             } else {
                 document.getElementById('pose-title').innerText = "Take a Deep Breath";
                 document.getElementById('pose-subtitle').innerText = "Prepare for " + (next ? next.name : "the end");
                 displayImg.classList.add('rest-mode');
                 document.getElementById('glow-circle').style.backgroundColor = '#10b981';
-                fadeOutMusic(bgMusic, 1000); // Fade out music during rest
+                // Fade out music to a very low volume during rest, but don't pause
+                fadeOutMusic(bgMusic, 0.02, FADE_DURATION); 
             }
 
             if (next) {
@@ -288,7 +297,7 @@
             isResting = false;
             timeLeft = poses[currentIndex].d;
             await speak(`Begin ${poses[currentIndex].name}.`);
-            updateDisplay();
+            updateDisplay(); // This will trigger fadeInMusic
             runTimer();
         }
 
@@ -296,8 +305,8 @@
             isResting = true;
             timeLeft = REST_TIME;
             const next = poses[currentIndex + 1];
-            await speak(`Rest. Next is ${next ? next.name : "the end"}.`); // Added check for next pose
-            updateDisplay();
+            await speak(`Rest. Next is ${next ? next.name : "the end"}.`); 
+            updateDisplay(); // This will trigger fadeOutMusic to low volume
             runTimer();
         }
 
@@ -310,9 +319,10 @@
                 showSpinner();
                 
                 try {
-                    // Start playing music (initially silent)
+                    // Pre-load music and attempt to play silently immediately
+                    // This is necessary for some browsers to allow later playback
+                    bgMusic.volume = 0;
                     await bgMusic.play(); 
-                    bgMusic.volume = 0; // Start at 0 volume
 
                     // Wait for speech to complete
                     await speak(`Starting session. Begin with ${poses[currentIndex].name}.`);
@@ -320,8 +330,8 @@
                     
                     startMovement();
                 } catch (e) {
-                    console.error("Error during session start:", e);
-                    alert("Warning: An issue occurred. Music or speech might not be playing. The session will continue.");
+                    console.error("Error during session start (music might not play):", e);
+                    alert("Warning: An issue occurred with audio playback. Music or speech might not be playing. Please check browser settings and ensure media autoplay is allowed. The session will continue without music if playback failed.");
                     hideSpinner(); // Hide spinner even on error
                     startMovement(); // Attempt to start movement even if audio failed
                 }
@@ -331,7 +341,8 @@
         }
 
         async function endSession() {
-            fadeOutMusic(bgMusic, 2000); // Fade out music when session ends
+            // Fade out completely and pause at the end of the session
+            fadeOutMusic(bgMusic, 0, FADE_DURATION * 2, true); // Longer fade out and pause
             await speak("Session complete. Sleep well.");
             document.getElementById('pose-title').innerText = "Peaceful Sleep";
             document.getElementById('pose-subtitle').innerText = "Namaste.";
