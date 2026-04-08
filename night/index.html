@@ -64,9 +64,8 @@
 </head>
 <body class="min-h-screen flex flex-col items-center p-4 md:p-8">
 
-    <!-- Background Audio -->
-    <audio id="bg-music" loop>
-        <!-- Corrected Google Drive URL -->
+    <!-- Background Audio - Added 'preload="auto"' -->
+    <audio id="bg-music" loop preload="auto">
         <source src="https://docs.google.com/uc?export=download&id=1VpIPkS5ZiI4A04DT_7j5R9KTu2KZ61UJ" type="audio/mpeg">
     </audio>
 
@@ -77,7 +76,7 @@
             <p class="text-slate-500 text-sm">Gentle Flow • Nightly Restoration</p>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="grid grid-cols-1 lg:col-span-12 gap-6">
             <!-- Left Side: Interactive Player -->
             <div class="lg:col-span-8 pose-card rounded-[40px] p-6 md:p-10 flex flex-col items-center text-center relative overflow-hidden">
                 
@@ -275,17 +274,32 @@
                 document.getElementById('button-text').innerText = "Reset Session";
                 
                 showSpinner();
-                // Play music and catch potential errors for better debugging
+                
+                // Wait for the background music to be ready to play
+                // or at least for its metadata to be loaded
                 try {
-                    await bgMusic.play();
+                    // This creates a promise that resolves when enough data is loaded to play
+                    const musicReadyPromise = new Promise((resolve, reject) => {
+                        if (bgMusic.readyState >= 2) { // HAVE_CURRENT_DATA or more
+                            resolve();
+                        } else {
+                            bgMusic.addEventListener('canplaythrough', resolve, { once: true });
+                            bgMusic.addEventListener('error', reject, { once: true });
+                            // A timeout in case 'canplaythrough' never fires due to issues
+                            setTimeout(() => reject(new Error("Music loading timed out.")), 10000); 
+                        }
+                    });
+
+                    await musicReadyPromise;
+                    await bgMusic.play(); // Attempt to play only after it's ready
                 } catch (e) {
                     console.error("Error playing background music:", e);
-                    // Optionally, inform the user or try a different approach
-                    alert("Could not play background music. Please check your browser settings or try again.");
+                    // Inform the user, but don't block the rest of the app
+                    alert("Warning: Could not play background music. Please check your internet connection and browser settings. The session will continue without music.");
                 }
                 
                 await speak(`Starting session. Begin with ${poses[currentIndex].name}.`);
-                hideSpinner();
+                hideSpinner(); // Hide spinner after music *and* speech are ready/finished
                 
                 startMovement();
             } else {
