@@ -22,6 +22,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            cursor: default; /* Default cursor */
         }
 
         .aquarium-background {
@@ -30,7 +31,6 @@
             left: 0;
             width: 100%;
             height: 100%;
-            /* CORRECTED PATH FOR CSS BACKGROUND-IMAGE */
             background-image: url('background/background1.png');
             background-size: cover;
             background-position: center;
@@ -53,18 +53,18 @@
         .ornament {
             position: absolute;
             bottom: 0;
-            pointer-events: none;
             z-index: 1;
             transition: transform 0.5s ease-out; /* For subtle parallax */
+            cursor: pointer; /* Indicate interactivity */
         }
 
         .fish {
             position: absolute;
-            pointer-events: none;
             z-index: 2;
             image-rendering: optimizeSpeed; /* Optimize image quality for movement */
             transform-origin: center center;
             will-change: transform, left, top; /* Optimize for animation */
+            cursor: pointer; /* Indicate interactivity */
         }
 
         .fish img {
@@ -158,11 +158,15 @@
         <button id="toggleBubblesBtn">Toggle Bubbles</button>
     </div>
 
+    <!-- Looped background music -->
+    <audio id="backgroundMusic" src="https://raw.githubusercontent.com/tbrstructureshop-beep/yoga/06966579dd85078afe6a8d1a4852680435a342b7/aquarium/838fc208-2aa9-407e-ae4a-f7178acb7e65.mp3" autoplay loop></audio>
+
     <script>
         const aquariumContainer = document.getElementById('aquarium-container');
         const addFishBtn = document.getElementById('addFishBtn');
         const removeFishBtn = document.getElementById('removeFishBtn');
         const toggleBubblesBtn = document.getElementById('toggleBubblesBtn');
+        const backgroundMusic = document.getElementById('backgroundMusic');
 
         // Paths are relative to the HTML file (index.html), which is inside yoga/aquarium/
         const ornamentImages = [
@@ -176,6 +180,7 @@
         const maxFish = 10; // Max fish count
         let fishCount = 0;
         let fishArray = [];
+        let ornamentsArray = []; // Keep track of ornaments
         let bubblesArray = [];
         let bubblesEnabled = true;
 
@@ -183,36 +188,76 @@
         function getRandom(min, max) {
             return Math.random() * (max - min) + min;
         }
+        function debounce(func, delay) {
+            let timeout;
+            return function(...args) {
+                const context = this;
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(context, args), delay);
+            };
+        }
 
         // --- Ornaments ---
-        function loadOrnaments() {
-            // Clear existing ornaments to prevent duplicates on resize
-            document.querySelectorAll('.ornament').forEach(orn => orn.remove());
+        class Ornament {
+            constructor(src) {
+                this.element = document.createElement('img');
+                this.element.src = src;
+                this.element.classList.add('ornament');
+                aquariumContainer.appendChild(this.element);
+                this.element.addEventListener('click', this.remove.bind(this)); // Add click listener
 
-            ornamentImages.forEach((src, index) => {
-                const ornament = document.createElement('img');
-                ornament.src = src;
-                ornament.classList.add('ornament');
-                aquariumContainer.appendChild(ornament);
+                this.initPositionAndSize();
+            }
 
+            initPositionAndSize() {
                 const viewportWidth = window.innerWidth;
                 const viewportHeight = window.innerHeight;
 
-                // Scale ornament size relative to viewport width, for better responsiveness
-                const baseWidth = getRandom(viewportWidth * 0.1, viewportWidth * 0.25); // e.g., 10-25% of viewport width
-                ornament.style.width = `${baseWidth}px`;
-                ornament.style.height = 'auto'; // Maintain aspect ratio
+                const baseWidth = getRandom(viewportWidth * 0.12, viewportWidth * 0.28); // e.g., 12-28% of viewport width
+                this.element.style.width = `${baseWidth}px`;
+                this.element.style.height = 'auto';
 
-                ornament.onload = () => {
-                    const ornamentHeight = ornament.clientHeight;
-                    // Position at bottom, ensuring it's fully visible and grounded
-                    // Adjust bottomOffset to keep ornaments slightly above the very bottom edge
-                    const bottomOffset = getRandom(0, 0.05 * viewportHeight); // 0-5% of viewport height
-                    ornament.style.bottom = `${bottomOffset - ornamentHeight / 2}px`; // Adjust to appear 'on' the seabed
-                    ornament.style.left = `${getRandom(0, viewportWidth - baseWidth)}px`; // Random horizontal position
+                // Use onload to ensure clientHeight is available
+                this.element.onload = () => {
+                    const ornamentHeight = this.element.clientHeight;
+                    const bottomOffset = getRandom(0.01 * viewportHeight, 0.08 * viewportHeight); // 1-8% from bottom
+                    this.element.style.bottom = `${bottomOffset}px`;
+                    this.element.style.left = `${getRandom(0, viewportWidth - baseWidth)}px`; // Random horizontal position
+
+                    // Add a random delay for subtle appearance animation if needed (optional)
+                    // this.element.style.opacity = 0;
+                    // setTimeout(() => { this.element.style.opacity = 1; }, getRandom(0, 500));
                 };
-            });
+
+                // If image is already loaded, ensure positioning happens
+                if (this.element.complete) {
+                     this.element.onload();
+                }
+            }
+
+            remove() {
+                this.element.remove();
+                ornamentsArray = ornamentsArray.filter(orn => orn !== this);
+                // After removing, consider re-arranging remaining ornaments or adding new ones
+                // For simplicity, we just remove it. New ones can be added manually or on resize.
+            }
         }
+
+
+        function loadInitialOrnaments() {
+            // Clear existing ornaments before loading new ones (important on resize)
+            document.querySelectorAll('.ornament').forEach(orn => orn.remove());
+            ornamentsArray = []; // Clear array as well
+
+            const numOrnamentsToLoad = Math.min(ornamentImages.length, getRandom(3, 5)); // Load 3-5 unique ornaments initially
+            const shuffledOrnaments = ornamentImages.sort(() => 0.5 - Math.random()); // Shuffle for variety
+
+            for(let i = 0; i < numOrnamentsToLoad; i++) {
+                const ornament = new Ornament(shuffledOrnaments[i]);
+                ornamentsArray.push(ornament);
+            }
+        }
+
 
         // --- Fish System ---
         class Fish {
@@ -223,6 +268,7 @@
                 this.img.src = fishImage;
                 this.element.appendChild(this.img);
                 aquariumContainer.appendChild(this.element);
+                this.element.addEventListener('click', this.remove.bind(this)); // Add click listener
 
                 this.initPositionAndSize();
             }
@@ -242,7 +288,7 @@
                 this.direction = Math.random() < 0.5 ? 1 : -1; // 1 for right, -1 for left
                 // Start off-screen
                 this.x = this.direction === 1 ? -this.size : viewportWidth;
-                this.y = getRandom(viewportHeight * 0.1, viewportHeight * 0.7); // Y position
+                this.y = getRandom(viewportHeight * 0.1, viewportHeight * 0.7); // Y position (avoiding bottom for ornaments)
 
                 this.updateTransform();
             }
@@ -279,12 +325,18 @@
                 }
 
                 // If fish is too high or low, reverse vertical direction or clamp
-                if (this.y < 0 || this.y > viewportHeight - this.size) {
+                if (this.y < viewportHeight * 0.05 || this.y > viewportHeight * 0.75 - this.size) { // Keep above ornaments
                     this.phase = -this.phase; // Reverse vertical movement
-                    this.y = Math.max(0, Math.min(this.y, viewportHeight - this.size)); // Clamp to bounds
+                    this.y = Math.max(viewportHeight * 0.05, Math.min(this.y, viewportHeight * 0.75 - this.size)); // Clamp to bounds
                 }
 
                 this.updateTransform();
+            }
+
+            remove() {
+                this.element.remove();
+                fishArray = fishArray.filter(f => f !== this);
+                fishCount--;
             }
         }
 
@@ -299,8 +351,7 @@
         function removeFish() {
             if (fishArray.length > 0) {
                 const fishToRemove = fishArray.pop();
-                fishToRemove.element.remove();
-                fishCount--;
+                fishToRemove.remove(); // Use the class's remove method
             }
         }
 
@@ -362,7 +413,6 @@
         function toggleBubbles() {
             bubblesEnabled = !bubblesEnabled;
             if (bubblesEnabled) {
-                // If re-enabling, add some new bubbles (can adjust count)
                 if (bubblesArray.length === 0) { // Only generate if empty
                      generateBubbles(20);
                 }
@@ -377,20 +427,15 @@
 
         // --- Animation Loop ---
         let lastTimestamp = 0;
-        const parallaxStrength = 0.005; // Adjust for subtle movement
 
         function animate(timestamp) {
             const deltaTime = timestamp - lastTimestamp;
             lastTimestamp = timestamp;
 
-            // Parallax for ornaments (very subtle horizontal drift)
-            // Use a center point for parallax
-            const centerX = window.innerWidth / 2;
-            const ornaments = document.querySelectorAll('.ornament');
-            ornaments.forEach(ornament => {
-                // Add a very slow, subtle automatic drift for "living" feel
+            // Parallax for ornaments (subtle automatic drift)
+            ornamentsArray.forEach(ornament => {
                 const drift = Math.sin(timestamp * 0.0001) * 5; // Slow sine wave drift
-                ornament.style.transform = `translateX(${drift}px)`; // Only automatic drift
+                ornament.element.style.transform = `translateX(${drift}px)`;
             });
 
             // Animate fish
@@ -411,7 +456,10 @@
 
         // --- Initialization ---
         window.onload = () => {
-            loadOrnaments();
+            // Attempt to play music. User interaction might be needed for autoplay.
+            backgroundMusic.play().catch(e => console.log("Autoplay prevented:", e));
+
+            loadInitialOrnaments();
             for (let i = 0; i < 5; i++) { // Start with 5 fish
                 addFish();
             }
@@ -420,15 +468,19 @@
         };
 
         // Resize event to handle fish and bubble repositioning
-        window.addEventListener('resize', () => {
-            // Re-position ornaments on resize to adapt to new viewport
-            loadOrnaments();
-            // Re-initialize fish and bubbles to adapt their sizes/positions to new viewport
+        const debouncedResize = debounce(() => {
+            // Re-load ornaments to ensure proper scaling and distribution on new viewport size
+            loadInitialOrnaments();
+
+            // Re-initialize fish to adapt their sizes/positions to new viewport
             fishArray.forEach(fish => fish.initPositionAndSize());
+            // Re-initialize bubbles to adapt their positions to new viewport (size is static)
             if (bubblesEnabled) {
                 bubblesArray.forEach(bubble => bubble.initBubble());
             }
-        });
+        }, 200); // Debounce to prevent excessive calls during rapid resizing
+
+        window.addEventListener('resize', debouncedResize);
 
     </script>
 </body>
