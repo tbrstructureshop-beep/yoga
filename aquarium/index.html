@@ -2,46 +2,65 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Virtual Aquarium</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Premium Virtual Aquarium</title>
     <style>
+        /* Base Variables and Global Styles */
         :root {
-            --glass-bg: rgba(255, 255, 255, 0.2);
-            --glass-border: rgba(255, 255, 255, 0.3);
-            --glass-shadow: rgba(0, 0, 0, 0.1);
-            --selected-glow: 0 0 10px 5px rgba(0, 255, 255, 0.7), 0 0 20px 10px rgba(0, 200, 200, 0.5);
+            --color-primary: #00aaff;
+            --color-accent: #00c8f5;
+            --color-text-light: #e0f2f7;
+            --color-text-dark: #333;
+            --color-bg-dark: #000a12;
+
+            --glass-bg-light: rgba(255, 255, 255, 0.15);
+            --glass-bg-dark: rgba(0, 0, 0, 0.2);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --glass-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            --selected-glow: 0 0 15px 7px var(--color-primary), 0 0 30px 15px var(--color-accent);
+            --delete-glow: 0 0 15px 7px rgba(255, 0, 0, 0.7), 0 0 30px 15px rgba(255, 100, 100, 0.5);
+
+            --panel-width-desktop: 300px;
+            --panel-width-mobile: 90vw;
+            --panel-padding: 20px;
+            --gap-size: 15px;
+
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         body {
             margin: 0;
             overflow: hidden;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #000; /* Fallback for background */
+            background-color: var(--color-bg-dark); /* Fallback */
             position: relative;
             width: 100vw;
             height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            cursor: default; /* Default cursor */
-            user-select: none; /* Prevent text selection during drag */
+            cursor: default;
+            user-select: none;
             -webkit-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
-            touch-action: none; /* Prevent browser touch actions like pull-to-refresh, pinch-zoom on body */
+            touch-action: none; /* Prevent browser touch actions */
+            color: var(--color-text-light);
+            font-size: 16px;
         }
 
+        /* Aquarium Background and Overlay */
         .aquarium-background {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-image: url('background/background1.png');
+            background-image: url('background/background1.png'); /* Ensure this path is correct */
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
-            z-index: -2; /* Below overlay and content */
+            z-index: -2;
+            filter: brightness(0.9) saturate(1.1); /* Subtle enhancement */
         }
 
         .aquarium-overlay {
@@ -51,287 +70,500 @@
             width: 100%;
             height: 100%;
             background: radial-gradient(circle at bottom, rgba(0, 70, 150, 0.2) 0%, rgba(0, 0, 0, 0) 70%),
-                        linear-gradient(to top, rgba(0, 100, 200, 0.1) 0%, rgba(0, 10, 30, 0.2) 100%);
-            z-index: -1; /* Above background, below content */
-            pointer-events: none; /* Allows clicks to pass through to elements below */
+                        linear-gradient(to top, rgba(0, 100, 200, 0.1) 0%, rgba(0, 10, 30, 0.3) 100%);
+            z-index: -1;
+            pointer-events: none;
         }
 
         #aquarium-container {
             position: absolute;
             width: 100%;
             height: 100%;
-            /* touch-action on body should cover this, but explicit can't hurt */
         }
 
-        .draggable-item { /* New class for common draggable properties */
+        /* Draggable Items (Fish & Ornaments) */
+        .draggable-item {
             position: absolute;
             will-change: transform, left, top;
-            touch-action: none; /* Crucial for drag and drop on touch devices */
-            z-index: 1; /* Default for items */
-            cursor: grab; /* Indicate draggable */
-            transition: box-shadow 0.2s ease-out; /* Smooth glow */
-            transform-origin: center center; /* Default for fish, can be overridden */
+            touch-action: none;
+            cursor: grab;
+            transition: box-shadow 0.2s ease-out, transform 0.1s ease-out; /* Smooth glow and minor transform feedback */
+            outline: none; /* Remove default focus outline */
         }
-
-        .ornament-wrapper {
-            transform-origin: bottom center; /* Scale from bottom for ornaments */
-            z-index: 1; /* Default for ornaments */
-        }
-
-        .fish {
-            z-index: 2; /* Fish are above ornaments by default */
-        }
-
 
         .draggable-item.dragging {
             cursor: grabbing;
-            z-index: 100; /* Bring to front when dragging */
+            z-index: 1000; /* Highest when dragging */
+            transform: translateZ(1px); /* Promote to compositor layer */
         }
 
         .draggable-item.selected {
             box-shadow: var(--selected-glow);
-            z-index: 50; /* Bring to front when selected */
+            z-index: 500; /* Higher than other items when selected */
         }
 
         .draggable-item img {
             display: block;
             width: 100%;
             height: auto;
-            pointer-events: none; /* Allow events to pass to wrapper for drag */
+            pointer-events: none;
+            image-rendering: optimizeSpeed; /* Optimize for movement */
         }
 
-        .item-controls { /* New class for common control properties */
+        .ornament-wrapper {
+            transform-origin: bottom center;
+            z-index: 10; /* Default ornament Z */
+        }
+
+        .fish-wrapper {
+            transform-origin: center center;
+            z-index: 20; /* Default fish Z (above ornaments) */
+        }
+
+        /* Item Controls (Resize/Delete) */
+        .item-controls {
             position: absolute;
-            top: -30px; /* Position above the item */
+            top: -45px; /* Position further above for better touch access */
             left: 50%;
-            transform: translateX(-50%);
-            background: var(--glass-bg);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
+            transform: translateX(-50%) scale(0.9); /* Slightly smaller, centered */
+            background: var(--glass-bg-dark);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             border: 1px solid var(--glass-border);
-            border-radius: 10px;
-            padding: 5px 10px;
+            border-radius: 12px;
+            padding: 8px 12px;
             display: flex;
-            gap: 5px;
-            box-shadow: 0 2px 5px var(--glass-shadow);
+            gap: 8px;
+            box-shadow: var(--glass-shadow);
             opacity: 0;
-            pointer-events: none; /* Controls are not interactive when not selected */
-            transition: opacity 0.2s ease-out;
-            z-index: 51; /* Above the item */
-            white-space: nowrap; /* Prevent buttons from wrapping */
-            touch-action: auto; /* Allow interaction with slider/buttons within controls */
+            pointer-events: none;
+            transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+            z-index: 501; /* Above selected item */
+            white-space: nowrap;
+            color: var(--color-text-light);
         }
 
         .draggable-item.selected .item-controls {
             opacity: 1;
-            pointer-events: auto; /* Controls become interactive when selected */
+            pointer-events: auto;
+            transform: translateX(-50%) scale(1);
         }
 
         .item-controls button, .item-controls input[type="range"] {
-            background: rgba(255, 255, 255, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            color: #333;
-            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: var(--color-text-light);
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 0.8em;
+            font-size: 0.85em;
             font-weight: bold;
-            transition: all 0.1s ease;
-            touch-action: manipulation; /* Optimizes touch for these interactive elements */
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+            height: 30px; /* Consistent button height */
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .item-controls button {
-            padding: 5px 8px;
+            padding: 0 10px;
         }
 
         .item-controls button:hover {
-            background: rgba(255, 255, 255, 0.5);
+            background: var(--color-primary);
+            color: white;
+            box-shadow: 0 0 8px var(--color-primary);
+        }
+        .item-controls button.delete-btn:hover {
+            background: rgba(255, 0, 0, 0.7);
+            box-shadow: var(--delete-glow);
         }
 
         .item-controls input[type="range"] {
-            width: 80px;
+            width: 100px; /* Wider for better touch interaction */
             -webkit-appearance: none;
-            height: 8px;
+            appearance: none;
+            height: 10px;
             margin: 0 5px;
             background: rgba(255, 255, 255, 0.3);
             outline: none;
-            border-radius: 4px;
+            border-radius: 5px;
+            overflow: hidden; /* For smooth thumb transition */
         }
 
         .item-controls input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 16px;
-            height: 16px;
+            width: 20px; /* Larger thumb for touch */
+            height: 20px;
             border-radius: 50%;
-            background: #00aaff;
-            cursor: grab; /* Indicate draggable thumb */
-            border: 1px solid rgba(0, 0, 0, 0.2);
+            background: var(--color-primary);
+            cursor: grab;
+            border: 2px solid var(--color-text-light);
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+            transition: background 0.2s ease, border-color 0.2s ease;
         }
 
         .item-controls input[type="range"]::-moz-range-thumb {
-            width: 16px;
-            height: 16px;
+            width: 20px;
+            height: 20px;
             border-radius: 50%;
-            background: #00aaff;
-            cursor: grab; /* Indicate draggable thumb */
-            border: 1px solid rgba(0, 0, 0, 0.2);
+            background: var(--color-primary);
+            cursor: grab;
+            border: 2px solid var(--color-text-light);
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+            transition: background 0.2s ease, border-color 0.2s ease;
+        }
+        .item-controls input[type="range"]:active::-webkit-slider-thumb {
+            background: var(--color-accent);
+            cursor: grabbing;
+        }
+        .item-controls input[type="range"]:active::-moz-range-thumb {
+            background: var(--color-accent);
+            cursor: grabbing;
         }
 
-        /* Original fish class is now inherited from draggable-item */
-
-
+        /* Bubbles */
         .bubble {
             position: absolute;
             background-color: rgba(255, 255, 255, 0.6);
             border-radius: 50%;
             pointer-events: none;
-            z-index: 0; /* Below fish and ornaments */
+            z-index: 0;
             filter: blur(0.5px);
             will-change: transform, opacity;
         }
 
-        /* UI Controls - Glassmorphism Style */
-        .controls-panel {
+        /* UI Panels - Dashboard Style */
+        .ui-panel {
             position: absolute;
-            top: 20px;
-            right: 20px;
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px); /* For Safari */
+            background: var(--glass-bg-dark);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
             border: 1px solid var(--glass-border);
-            border-radius: 15px;
-            padding: 15px;
+            border-radius: 20px;
+            padding: var(--panel-padding);
+            box-shadow: var(--glass-shadow);
+            z-index: 100;
+            user-select: none;
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            box-shadow: 0 4px 10px var(--glass-shadow);
-            z-index: 10;
-            user-select: none; /* Prevent text selection */
+            gap: var(--gap-size);
+            color: var(--color-text-light);
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+            transform: translateZ(0); /* Promote to compositor layer */
         }
 
-        .controls-panel button {
-            background: rgba(255, 255, 255, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            color: #333;
-            padding: 10px 15px;
-            border-radius: 10px;
+        /* Controls Panel */
+        #controls-panel {
+            top: var(--panel-padding);
+            right: var(--panel-padding);
+            width: 200px;
+            align-items: stretch; /* Buttons stretch to full width */
+        }
+
+        .controls-panel-buttons button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--color-text-light);
+            padding: 12px 15px;
+            border-radius: 12px;
             cursor: pointer;
-            font-size: 0.9em;
+            font-size: 1em;
             font-weight: bold;
             transition: all 0.2s ease;
-            backdrop-filter: blur(5px); /* Ensure button background is also blurred */
-            touch-action: manipulation; /* Optimize touch for buttons */
+            touch-action: manipulation;
+            width: 100%;
+            text-align: center;
         }
 
-        .controls-panel button:hover {
-            background: rgba(255, 255, 255, 0.6);
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-            transform: translateY(-1px);
+        .controls-panel-buttons button:hover {
+            background: var(--color-primary);
+            box-shadow: 0 0 10px var(--color-primary);
+            transform: translateY(-2px);
         }
 
-        .controls-panel button:active {
+        .controls-panel-buttons button:active {
             transform: translateY(0);
             box-shadow: none;
         }
 
-        /* Ornament Shop Panel */
-        .shop-panel {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid var(--glass-border);
-            border-radius: 15px;
-            padding: 15px;
-            box-shadow: 0 4px 10px var(--glass-shadow);
-            z-index: 10;
-            user-select: none;
+        /* Shop Panel */
+        #shop-panel {
+            top: var(--panel-padding);
+            left: var(--panel-padding);
+            width: var(--panel-width-desktop);
+            height: calc(100vh - (2 * var(--panel-padding)));
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            transform: translateX(calc(-100% - var(--panel-padding))) translateZ(0); /* Hidden by default */
+        }
+        #shop-panel.open {
+            transform: translateX(0) translateZ(0);
         }
 
-        .shop-panel h3 {
-            margin: 0 0 10px 0;
-            color: #333;
-            font-size: 1.1em;
+        #shop-panel h3 {
+            margin: 0;
+            color: var(--color-text-light);
+            font-size: 1.2em;
             text-align: center;
+            padding-bottom: var(--gap-size);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .shop-items {
+        .shop-tabs {
             display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            justify-content: center;
+            margin-bottom: var(--gap-size);
+            border-radius: 10px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .shop-tabs button {
+            flex: 1;
+            padding: 10px 15px;
+            background: transparent;
+            border: none;
+            color: var(--color-text-light);
+            font-size: 0.95em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+        }
+
+        .shop-tabs button:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .shop-tabs button.active {
+            background: var(--color-primary);
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .shop-content {
+            flex-grow: 1;
+            overflow-y: auto; /* Scrollable shop content */
+            padding-right: 5px; /* Prevent scrollbar overlap */
+        }
+
+        /* Custom scrollbar for shop content */
+        .shop-content::-webkit-scrollbar {
+            width: 8px;
+        }
+        .shop-content::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+        .shop-content::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            transition: background 0.2s ease;
+        }
+        .shop-content::-webkit-scrollbar-thumb:hover {
+            background: var(--color-primary);
+        }
+
+
+        .shop-items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); /* Larger thumbnails */
+            gap: 12px;
+            padding-bottom: 10px;
         }
 
         .shop-item {
-            width: 60px; /* Thumbnail size */
-            height: 60px;
             border: 2px solid transparent;
-            border-radius: 8px;
+            border-radius: 10px;
             overflow: hidden;
             cursor: pointer;
             transition: all 0.2s ease;
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: rgba(255, 255, 255, 0.05);
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
-            touch-action: manipulation; /* Optimize touch for shop items */
+            aspect-ratio: 1 / 1; /* Keep square aspect ratio */
+            position: relative;
+            touch-action: manipulation;
+            font-size: 0.8em;
+            text-align: center;
+            padding: 5px;
         }
 
         .shop-item:hover {
-            border-color: #00aaff;
-            box-shadow: 0 0 5px rgba(0, 170, 255, 0.5);
+            border-color: var(--color-primary);
+            box-shadow: 0 0 10px rgba(0, 170, 255, 0.5);
+            background-color: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
         }
 
         .shop-item img {
-            max-width: 90%;
-            max-height: 90%;
+            max-width: 80%;
+            max-height: 80%;
             object-fit: contain;
             display: block;
-            pointer-events: none; /* Images within shop items should not interfere with click */
+            margin-bottom: 5px;
+            pointer-events: none;
+        }
+        .shop-item span {
+            color: var(--color-text-light);
+            opacity: 0.8;
+            font-weight: 600;
+            line-height: 1.2;
         }
 
-        /* Responsive adjustments */
+        .add-item-feedback {
+            position: absolute;
+            background: rgba(0, 255, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8em;
+            animation: fadeOutUp 1s forwards;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        @keyframes fadeOutUp {
+            0% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-30px); }
+        }
+
+
+        /* Shop Toggle Button */
+        #toggle-shop-btn {
+            position: absolute;
+            top: var(--panel-padding);
+            left: var(--panel-padding);
+            background: var(--glass-bg-dark);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 101; /* Above other controls to be always accessible */
+            box-shadow: var(--glass-shadow);
+            transition: transform 0.3s ease-out, background 0.2s ease, box-shadow 0.2s ease;
+            transform: translateX(0); /* Default position */
+        }
+        #toggle-shop-btn.shop-open {
+            transform: translateX(calc(var(--panel-width-desktop) + var(--gap-size))); /* Pushed aside */
+            background: var(--color-primary);
+            box-shadow: 0 0 15px var(--color-primary);
+        }
+        #toggle-shop-btn i {
+            color: var(--color-text-light);
+            font-size: 1.5em;
+            transition: transform 0.3s ease-out;
+        }
+        #toggle-shop-btn.shop-open i {
+            transform: rotate(180deg);
+        }
+        #toggle-shop-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        #toggle-shop-btn.shop-open:hover {
+            background: var(--color-accent);
+        }
+
+
+        /* Overlay for drag boundary padding visualization (debug) */
+        /* .drag-boundary-indicator {
+            position: absolute;
+            border: 2px dashed red;
+            pointer-events: none;
+            z-index: 9999;
+        } */
+
+
+        /* Responsive Adjustments */
         @media (max-width: 768px) {
-            .controls-panel {
-                top: 10px;
-                right: 10px;
-                padding: 10px;
-                gap: 5px;
-            }
-            .controls-panel button {
-                padding: 8px 12px;
-                font-size: 0.8em;
+            :root {
+                --panel-padding: 15px;
+                --gap-size: 10px;
+                font-size: 14px;
             }
 
-            .shop-panel {
-                top: 10px;
-                left: 10px;
+            #controls-panel {
+                top: var(--panel-padding);
+                right: var(--panel-padding);
+                width: 150px; /* Smaller on mobile */
                 padding: 10px;
+            }
+
+            .controls-panel-buttons button {
+                padding: 10px;
+                font-size: 0.9em;
+                border-radius: 10px;
+            }
+
+            #shop-panel {
+                top: var(--panel-padding);
+                left: var(--panel-padding);
+                width: calc(100vw - (2 * var(--panel-padding))); /* Full width minus padding */
+                height: calc(100vh - (2 * var(--panel-padding)));
+                transform: translateX(calc(-100vw - var(--panel-padding))) translateZ(0); /* Hidden */
+            }
+            #toggle-shop-btn.shop-open {
+                transform: translateX(calc(100vw - (2 * var(--panel-padding)) + var(--gap-size))); /* Pushed aside by full panel width */
+            }
+
+            .shop-items-grid {
+                grid-template-columns: repeat(auto-fill, minmax(65px, 1fr)); /* Smaller thumbnails for mobile */
                 gap: 8px;
             }
-            .shop-panel h3 {
-                font-size: 1em;
-                margin-bottom: 5px;
-            }
-            .shop-items {
-                gap: 5px;
-            }
+
             .shop-item {
-                width: 50px;
-                height: 50px;
+                padding: 3px;
+                border-radius: 8px;
             }
 
-            /* Adjust item controls for smaller screens */
+            .shop-item img {
+                max-width: 70%;
+                max-height: 70%;
+            }
+
             .item-controls {
-                transform: translateX(-50%) scale(0.8);
-                top: -25px;
+                top: -38px;
+                padding: 6px 10px;
+                gap: 6px;
+                transform: translateX(-50%) scale(0.85);
+            }
+            .draggable-item.selected .item-controls {
+                 transform: translateX(-50%) scale(1); /* No scale change on select */
+            }
+            .item-controls button {
+                padding: 0 8px;
+                height: 28px;
+                font-size: 0.8em;
+            }
+            .item-controls input[type="range"] {
+                width: 70px;
+                height: 8px;
+            }
+            .item-controls input[type="range"]::-webkit-slider-thumb,
+            .item-controls input[type="range"]::-moz-range-thumb {
+                width: 18px;
+                height: 18px;
+            }
+
+            #toggle-shop-btn {
+                width: 45px;
+                height: 45px;
+            }
+            #toggle-shop-btn i {
+                font-size: 1.3em;
             }
         }
     </style>
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
 
@@ -339,213 +571,446 @@
     <div class="aquarium-overlay"></div>
 
     <div id="aquarium-container">
-        <!-- Ornaments will be injected here by JS -->
-        <!-- Fish will be injected here by JS -->
-        <!-- Bubbles will be injected here by JS -->
+        <!-- Draggable items (Fish, Ornaments) and Bubbles will be injected here by JS -->
     </div>
 
-    <div class="controls-panel">
-        <button id="playMusicBtn">Play Music</button> <!-- NEW MUSIC BUTTON -->
-        <button id="addFishBtn">Add Fish</button>
-        <button id="removeFishBtn">Remove Fish</button>
-        <button id="toggleBubblesBtn">Toggle Bubbles</button>
+    <!-- Shop Toggle Button -->
+    <div id="toggle-shop-btn" role="button" aria-label="Toggle Shop Panel">
+        <i class="fas fa-store"></i>
     </div>
 
-    <div class="shop-panel">
-        <h3>Ornament Shop</h3>
-        <div class="shop-items" id="shopItems">
-            <!-- Shop items will be generated here by JS -->
+    <!-- Shop Panel -->
+    <div id="shop-panel" class="ui-panel">
+        <h3>Shop</h3>
+        <div class="shop-tabs">
+            <button id="tab-fish" class="active">Fish</button>
+            <button id="tab-ornaments">Ornaments</button>
+        </div>
+        <div class="shop-content">
+            <div id="shop-fish-grid" class="shop-items-grid">
+                <!-- Fish shop items will be generated here by JS -->
+            </div>
+            <div id="shop-ornaments-grid" class="shop-items-grid" style="display: none;">
+                <!-- Ornament shop items will be generated here by JS -->
+            </div>
+        </div>
+        <!-- Future: Quantity selector and preview area could go here -->
+    </div>
+
+    <!-- Controls Panel -->
+    <div id="controls-panel" class="ui-panel">
+        <div class="controls-panel-buttons">
+            <button id="playMusicBtn"><i class="fas fa-music"></i> Music</button>
+            <button id="addFishBtn"><i class="fas fa-fish"></i> Add Fish</button>
+            <button id="removeFishBtn"><i class="fas fa-trash-alt"></i> Remove Fish</button>
+            <button id="toggleBubblesBtn"><i class="fas fa-bubble"></i> Bubbles</button>
+            <!-- Future: Save/Load buttons -->
+            <!-- <button id="saveStateBtn"><i class="fas fa-save"></i> Save</button> -->
+            <!-- <button id="loadStateBtn"><i class="fas fa-folder-open"></i> Load</button> -->
+            <!-- Future: Asset Upload -->
+            <!-- <label for="uploadAsset" class="custom-file-upload">
+                <i class="fas fa-upload"></i> Upload Item
+            </label>
+            <input type="file" id="uploadAsset" accept="image/*" style="display: none;"> -->
+            <!-- Future: Layer Management -->
+            <!-- <button id="bringForwardBtn"><i class="fas fa-arrow-up"></i> Bring Forward</button> -->
+            <!-- <button id="sendBackwardBtn"><i class="fas fa-arrow-down"></i> Send Backward</button> -->
         </div>
     </div>
 
     <!-- Looped background music -->
-    <audio id="backgroundMusic" src="838fc208-2aa9-407e-ae4a-f7178acb7e65.mp3" loop></audio> <!-- REMOVED AUTOPLAY -->
+    <audio id="backgroundMusic" src="838fc208-2aa9-407e-ae4a-f7178acb7e65.mp3" loop></audio>
 
     <script>
-        const aquariumContainer = document.getElementById('aquarium-container');
-        const playMusicBtn = document.getElementById('playMusicBtn');
-        const addFishBtn = document.getElementById('addFishBtn');
-        const removeFishBtn = document.getElementById('removeFishBtn');
-        const toggleBubblesBtn = document.getElementById('toggleBubblesBtn');
-        const shopItemsDiv = document.getElementById('shopItems');
-        const backgroundMusic = document.getElementById('backgroundMusic');
+        /**
+         * Virtual Aquarium Application - Senior Frontend Engineer & UX/UI Redesign
+         *
+         * This script transforms a basic virtual aquarium into a modular, performant,
+         * and user-friendly experience with a modern UI.
+         */
 
-        const ornamentImageSources = [
-            'ornamen/ornamen1.png',
-            'ornamen/ornamen2.png',
-            'ornamen/ornamen3.png',
-            'ornamen/ornamen4.png'
-        ];
-        const fishImage = 'fish/fish1.png';
-
-        const maxFish = 10;
-        const maxOrnaments = 20;
-
-        let fishCount = 0;
-        let fishArray = [];
-        let ornamentsArray = [];
-        let bubblesArray = [];
-        let bubblesEnabled = true;
-
-        let selectedItem = null; // Can be an Ornament or a Fish
+        // --- Configuration & Constants ---
+        const CONFIG = {
+            maxFish: 15, // Increased max fish for more lively aquarium
+            maxOrnaments: 25,
+            bubbleCount: 30, // More bubbles
+            dragBoundaryPadding: 20, // Pixels from the edge items can be dragged
+            fishBaseSpeed: 80, // Pixels per second
+            ornamentDriftAmplitude: 10, // Pixels
+            ornamentDriftFrequency: 0.0001, // Slower drift
+            fishMinSize: 0.04, // Relative to viewport width
+            fishMaxSize: 0.12,
+            ornamentMinSize: 0.1,
+            ornamentMaxSize: 0.3,
+            initialFishCount: 7,
+            initialOrnamentCount: 3,
+            fishAssetPath: 'fish/',
+            ornamentAssetPath: 'ornamen/',
+            assetMetadata: { // Simulate dynamic asset loading with metadata
+                fish: [
+                    { id: 'fish1', name: 'Clownfish', src: 'fish1.png', defaultScale: 0.9 },
+                    { id: 'fish2', name: 'Angelfish', src: 'fish2.png', defaultScale: 1.1 },
+                    { id: 'fish3', name: 'Guppy', src: 'fish3.png', defaultScale: 0.7 },
+                    // Add more fish types here
+                ],
+                ornaments: [
+                    { id: 'ornament1', name: 'Coral Cluster', src: 'ornamen1.png', defaultScale: 1.0 },
+                    { id: 'ornament2', name: 'Sunken Ship', src: 'ornamen2.png', defaultScale: 1.5 },
+                    { id: 'ornament3', name: 'Treasure Chest', src: 'ornamen3.png', defaultScale: 0.8 },
+                    { id: 'ornament4', name: 'Seaweed Bush', src: 'ornamen4.png', defaultScale: 1.2 },
+                    // Add more ornament types here
+                ]
+            }
+        };
 
         // --- Utility Functions ---
-        function getRandom(min, max) {
-            return Math.random() * (max - min) + min;
-        }
-        function debounce(func, delay) {
+        /**
+         * Generates a random number within a specified range.
+         * @param {number} min - The minimum value (inclusive).
+         * @param {number} max - The maximum value (inclusive).
+         * @returns {number} A random number.
+         */
+        const getRandom = (min, max) => Math.random() * (max - min) + min;
+
+        /**
+         * Debounces a function, ensuring it's not called too frequently.
+         * @param {Function} func - The function to debounce.
+         * @param {number} delay - The delay in milliseconds.
+         * @returns {Function} The debounced function.
+         */
+        const debounce = (func, delay) => {
             let timeout;
             return function(...args) {
                 const context = this;
                 clearTimeout(timeout);
                 timeout = setTimeout(() => func.apply(context, args), delay);
             };
-        }
+        };
 
-        // --- Base DraggableItem Class ---
+        /**
+         * Creates a visual feedback element for adding items.
+         * @param {HTMLElement} targetElement - The element to position feedback near.
+         * @param {string} message - The message to display.
+         */
+        const showAddItemFeedback = (targetElement, message) => {
+            const feedback = document.createElement('div');
+            feedback.classList.add('add-item-feedback');
+            feedback.textContent = message;
+            aquariumContainer.appendChild(feedback);
+
+            const targetRect = targetElement.getBoundingClientRect();
+            feedback.style.left = `${targetRect.left + targetRect.width / 2}px`;
+            feedback.style.top = `${targetRect.top - 20}px`; // Above the element
+
+            feedback.addEventListener('animationend', () => feedback.remove());
+        };
+
+        // --- Asset Loader Module ---
+        const AssetLoader = (() => {
+            const cache = {};
+
+            /**
+             * Preloads an image and returns a Promise.
+             * @param {string} src - The image source URL.
+             * @returns {Promise<HTMLImageElement>} A promise that resolves with the loaded image.
+             */
+            const preloadImage = (src) => {
+                if (cache[src]) {
+                    return Promise.resolve(cache[src]);
+                }
+                return new Promise((resolve, reject) => {
+                    const img = new Image();
+                    img.src = src;
+                    img.onload = () => {
+                        cache[src] = img;
+                        resolve(img);
+                    };
+                    img.onerror = (err) => {
+                        console.error(`Failed to load image: ${src}`, err);
+                        reject(err);
+                    };
+                });
+            };
+
+            /**
+             * Dynamically loads assets metadata. In a real app, this might fetch from a server.
+             * @returns {object} An object containing fish and ornament metadata.
+             */
+            const loadAssetMetadata = () => {
+                // For this example, we use the CONFIG.assetMetadata directly.
+                // In a production app, this would be an async fetch.
+                return JSON.parse(JSON.stringify(CONFIG.assetMetadata)); // Deep clone to prevent direct modification
+            };
+
+            return {
+                preloadImage,
+                loadAssetMetadata
+            };
+        })();
+
+        // --- Renderer Module ---
+        // Handles batching DOM updates for performance.
+        const Renderer = (() => {
+            const elementsToUpdate = new Set();
+            let animationFrameId = null;
+
+            const updateLoop = (timestamp) => {
+                // Use a simple array copy to avoid issues if elements are added/removed during iteration
+                const currentElements = Array.from(elementsToUpdate);
+                currentElements.forEach(item => {
+                    if (item.element.parentNode) { // Ensure element is still in DOM
+                        item.applyTransform();
+                    } else {
+                        elementsToUpdate.delete(item); // Clean up removed elements
+                    }
+                });
+                animationFrameId = requestAnimationFrame(updateLoop);
+            };
+
+            return {
+                /**
+                 * Adds an item to the rendering queue. Its applyTransform method will be called.
+                 * @param {object} item - An object with an `element` property (HTMLElement) and an `applyTransform` method.
+                 */
+                add: (item) => {
+                    elementsToUpdate.add(item);
+                    if (!animationFrameId) {
+                        animationFrameId = requestAnimationFrame(updateLoop);
+                    }
+                },
+                /**
+                 * Removes an item from the rendering queue.
+                 * @param {object} item - The item to remove.
+                 */
+                remove: (item) => {
+                    elementsToUpdate.delete(item);
+                    if (elementsToUpdate.size === 0 && animationFrameId) {
+                        cancelAnimationFrame(animationFrameId);
+                        animationFrameId = null;
+                    }
+                },
+                /**
+                 * Forces an immediate update for a specific item. Use sparingly.
+                 * @param {object} item - The item to update.
+                 */
+                forceUpdate: (item) => {
+                    item.applyTransform();
+                }
+            };
+        })();
+
+        // --- DraggableItem Base Class ---
         class DraggableItem {
-            constructor(src, className, transformOrigin = 'center center') {
+            /**
+             * Base class for all draggable and interactable items in the aquarium.
+             * @param {string} id - Unique identifier for the item.
+             * @param {string} src - Image source path.
+             * @param {string} className - Additional CSS class for the item wrapper.
+             * @param {string} transformOrigin - CSS transform-origin property.
+             * @param {number} defaultScale - Initial scale factor for the item.
+             */
+            constructor(id, src, className, transformOrigin = 'center center', defaultScale = 1.0) {
+                this.id = id;
                 this.src = src;
                 this.element = document.createElement('div');
                 this.element.classList.add('draggable-item', className);
-                this.element.style.transformOrigin = transformOrigin; // Set transform-origin here
+                this.element.style.transformOrigin = transformOrigin;
+                this.element.dataset.itemId = id; // For identification
                 aquariumContainer.appendChild(this.element);
 
                 this.img = document.createElement('img');
                 this.img.src = src;
-                this.img.classList.add('item-image'); // Generic image class
+                this.img.classList.add('item-image');
                 this.element.appendChild(this.img);
 
-                this.controls = this.createControls();
+                this.controls = this._createControls();
                 this.element.appendChild(this.controls);
 
                 this.x = 0;
                 this.y = 0;
-                this.scale = 1;
+                this.scale = defaultScale;
                 this.isDragging = false;
                 this.offsetX = 0;
                 this.offsetY = 0;
+                this.initialTouchDistance = null; // For pinch-to-zoom
+                this.originalScale = defaultScale; // Store original scale for reset/pinch calc
 
-                this.addEventListeners();
+                this.onDragBound = this._onDrag.bind(this);
+                this.onStopDragBound = this._onStopDrag.bind(this);
+
+                this._addEventListeners();
                 this.deselect();
+
+                // Add to renderer for initial positioning and updates
+                Renderer.add(this);
             }
 
-            createControls() {
+            /**
+             * Creates the control panel (delete, resize) for the item.
+             * @returns {HTMLElement} The controls div.
+             */
+            _createControls() {
                 const controlsDiv = document.createElement('div');
                 controlsDiv.classList.add('item-controls');
 
                 const deleteBtn = document.createElement('button');
                 deleteBtn.textContent = '❌';
                 deleteBtn.title = 'Delete Item';
+                deleteBtn.classList.add('delete-btn');
                 deleteBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
+                    e.stopPropagation(); // Prevent re-selecting the ornament
                     this.remove();
+                    UIManager.deselectItem(); // Deselect after removal
                 });
                 controlsDiv.appendChild(deleteBtn);
 
                 const resizeSlider = document.createElement('input');
                 resizeSlider.type = 'range';
                 resizeSlider.min = '0.5';
-                resizeSlider.max = '2.0';
-                resizeSlider.step = '0.05';
+                resizeSlider.max = '2.5'; // Wider range
+                resizeSlider.step = '0.01'; // Finer control
                 resizeSlider.value = this.scale.toString();
                 resizeSlider.title = 'Resize';
                 resizeSlider.addEventListener('input', (e) => {
                     this.scale = parseFloat(e.target.value);
-                    this.applyTransform();
+                    Renderer.forceUpdate(this); // Immediate feedback for slider
                 });
+                // Crucially, stop propagation on mousedown/touchstart for the slider
                 resizeSlider.addEventListener('mousedown', (e) => e.stopPropagation());
                 resizeSlider.addEventListener('touchstart', (e) => e.stopPropagation());
                 controlsDiv.appendChild(resizeSlider);
 
+                // Add future layer management buttons here
+                // const bringForwardBtn = document.createElement('button');
+                // bringForwardBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
+                // bringForwardBtn.title = 'Bring Forward';
+                // bringForwardBtn.addEventListener('click', (e) => { e.stopPropagation(); this.bringForward(); });
+                // controlsDiv.appendChild(bringForwardBtn);
+
+                // const sendBackwardBtn = document.createElement('button');
+                // sendBackwardBtn.innerHTML = '<i class="fas fa-arrow-down"></i>';
+                // sendBackwardBtn.title = 'Send Backward';
+                // sendBackwardBtn.addEventListener('click', (e) => { e.stopPropagation(); this.sendBackward(); });
+                // controlsDiv.appendChild(sendBackwardBtn);
+
                 return controlsDiv;
             }
 
-            addEventListeners() {
-                this.element.addEventListener('mousedown', this.onStartDrag.bind(this));
-                this.element.addEventListener('touchstart', this.onStartDrag.bind(this), { passive: false });
+            /**
+             * Adds initial event listeners for drag functionality.
+             * Uses passive: false for touchstart to allow e.preventDefault().
+             */
+            _addEventListeners() {
+                this.element.addEventListener('mousedown', this._onStartDrag.bind(this), { passive: false });
+                this.element.addEventListener('touchstart', this._onStartDrag.bind(this), { passive: false });
             }
 
+            /**
+             * Initializes the item's position and size.
+             * @param {number|null} [initialX=null] - Optional initial X coordinate.
+             * @param {number|null} [initialY=null] - Optional initial Y coordinate.
+             */
             initPositionAndSize(initialX = null, initialY = null) {
                 const viewportWidth = window.innerWidth;
                 const viewportHeight = window.innerHeight;
 
-                // Default width, can be overridden by subclasses
-                const baseWidth = getRandom(viewportWidth * 0.1, viewportWidth * 0.25);
-                this.element.style.width = `${baseWidth}px`;
-                this.element.style.height = 'auto'; // Maintain aspect ratio
+                // Ensure image is loaded to get accurate dimensions
+                AssetLoader.preloadImage(this.src).then(img => {
+                    // Set a base width, then let CSS scale based on content
+                    const baseWidth = getRandom(viewportWidth * 0.08, viewportWidth * 0.2); // Default for draggable, subclasses override
+                    this.element.style.width = `${baseWidth}px`;
+                    this.element.style.height = 'auto'; // Maintain aspect ratio
 
-                const applyInitialPosition = () => {
-                    const itemWidth = this.img.clientWidth;
-                    const itemHeight = this.img.clientHeight;
+                    const itemWidth = img.naturalWidth * (baseWidth / img.naturalWidth); // Actual width after scaling
+                    const itemHeight = img.naturalHeight * (baseWidth / img.naturalWidth);
 
-                    this.scale = 1;
+                    this.scale = this.originalScale; // Reset scale for fresh init
                     const resizeSlider = this.controls.querySelector('input[type="range"]');
                     if (resizeSlider) resizeSlider.value = this.scale.toString();
 
-                    if (initialX !== null && initialY !== null) {
-                        this.x = initialX - itemWidth / 2;
-                        this.y = initialY - itemHeight / 2;
-                    } else {
-                        this.x = (viewportWidth / 2) - (itemWidth / 2);
-                        this.y = (viewportHeight / 2) - (itemHeight / 2);
-                    }
-                    this.applyTransform();
-                };
+                    // Position it, clamped within boundaries
+                    const effectiveWidth = itemWidth * this.scale;
+                    const effectiveHeight = itemHeight * this.scale;
 
-                this.img.onload = applyInitialPosition;
-                if (this.img.complete) {
-                    applyInitialPosition();
-                }
+                    if (initialX !== null && initialY !== null) {
+                        this.x = initialX - effectiveWidth / 2;
+                        this.y = initialY - effectiveHeight / 2;
+                    } else {
+                        // Default to center if no initial pos given
+                        this.x = (viewportWidth / 2) - (effectiveWidth / 2);
+                        this.y = (viewportHeight / 2) - (effectiveHeight / 2);
+                    }
+
+                    // Clamp to boundaries
+                    this.x = Math.max(CONFIG.dragBoundaryPadding, Math.min(this.x, viewportWidth - effectiveWidth - CONFIG.dragBoundaryPadding));
+                    this.y = Math.max(CONFIG.dragBoundaryPadding, Math.min(this.y, viewportHeight - effectiveHeight - CONFIG.dragBoundaryPadding));
+
+                    Renderer.forceUpdate(this); // Apply initial transform
+                });
             }
 
+            /**
+             * Applies the item's current position, scale, and other transforms to its DOM element.
+             * This method is called by the Renderer.
+             */
             applyTransform() {
+                // This is the core update for the DOM element.
+                // Subclasses can override this to add specific transformations (e.g., fish flip).
                 this.element.style.left = `${this.x}px`;
                 this.element.style.top = `${this.y}px`;
-                // Combine scale and potential drift/flip for subclasses
-                let currentTransform = `scale(${this.scale})`;
-                // Subclasses can add more to currentTransform before setting it
-                this.element.style.transform = currentTransform;
+                this.element.style.transform = `scale(${this.scale})`;
             }
 
+            /**
+             * Selects the item, making its controls visible and updating global selection.
+             */
             select() {
-                if (selectedItem && selectedItem !== this) {
-                    selectedItem.deselect();
-                }
-                this.element.classList.add('selected');
-                this.element.style.zIndex = 50;
-                selectedItem = this;
+                UIManager.selectItem(this);
             }
 
+            /**
+             * Deselects the item, hiding its controls.
+             */
             deselect() {
                 this.element.classList.remove('selected');
-                // Revert to default z-index, specific to ornament/fish
-                if (this instanceof Ornament) {
-                    this.element.style.zIndex = 1;
-                } else if (this instanceof Fish) {
-                    this.element.style.zIndex = 2;
-                }
-                if (selectedItem === this) {
-                    selectedItem = null;
-                }
+                this.element.style.zIndex = this instanceof Ornament ? 10 : 20; // Revert to default
             }
 
-            onStartDrag(e) {
+            /**
+             * Handles the start of a drag or touch gesture.
+             * @param {Event} e - The mouse or touch event.
+             */
+            _onStartDrag(e) {
+                // If the event target is within the controls, don't start dragging the item.
+                // This prevents accidental drags when interacting with sliders/buttons.
                 if (e.target.closest('.item-controls')) {
                     return;
                 }
 
-                e.preventDefault();
+                e.preventDefault(); // Prevent default browser actions (e.g., image drag, scrolling)
                 this.select();
 
                 this.isDragging = true;
                 this.element.classList.add('dragging');
-                this.element.style.zIndex = 100;
+                this.element.style.zIndex = 1000; // Bring to front
 
                 let clientX, clientY;
                 if (e.type === 'touchstart') {
-                    clientX = e.touches[0].clientX;
-                    clientY = e.touches[0].clientY;
+                    if (e.touches.length === 1) { // Single touch for drag
+                        clientX = e.touches[0].clientX;
+                        clientY = e.touches[0].clientY;
+                        this.initialTouchDistance = null; // Reset pinch-zoom
+                    } else if (e.touches.length === 2) { // Two touches for pinch-zoom (future)
+                        // This branch is for preparing pinch-to-zoom
+                        // For now, it will effectively stop drag to avoid conflicting gestures
+                        this.initialTouchDistance = Math.hypot(
+                            e.touches[1].clientX - e.touches[0].clientX,
+                            e.touches[1].clientY - e.touches[0].clientY
+                        );
+                        this.isDragging = false; // Disable drag during pinch
+                        this.element.classList.remove('dragging');
+                        return;
+                    }
                 } else {
                     clientX = e.clientX;
                     clientY = e.clientY;
@@ -559,102 +1024,171 @@
                 document.addEventListener('mouseup', this.onStopDragBound);
                 document.addEventListener('touchmove', this.onDragBound, { passive: false });
                 document.addEventListener('touchend', this.onStopDragBound);
+                document.addEventListener('touchcancel', this.onStopDragBound);
             }
 
-            onDrag(e) {
-                if (!this.isDragging) return;
+            /**
+             * Handles the drag or touchmove event.
+             * @param {Event} e - The mouse or touch event.
+             */
+            _onDrag(e) {
+                if (!this.isDragging && e.type !== 'touchmove') return;
 
                 let clientX, clientY;
                 if (e.type === 'touchmove') {
-                    if (e.touches.length > 1) {
-                        this.onStopDrag(e);
-                        return;
+                    if (e.touches.length === 1 && this.isDragging) { // Single touch drag
+                        clientX = e.touches[0].clientX;
+                        clientY = e.touches[0].clientY;
+                        e.preventDefault(); // Prevent scrolling while dragging
+                    } else if (e.touches.length === 2 && this.initialTouchDistance !== null) { // Pinch-to-zoom (future)
+                        // Pinch-to-zoom logic goes here
+                        // For now, we'll just prevent default to avoid scrolling
+                        e.preventDefault();
+                        const currentTouchDistance = Math.hypot(
+                            e.touches[1].clientX - e.touches[0].clientX,
+                            e.touches[1].clientY - e.touches[0].clientY
+                        );
+                        const scaleFactor = currentTouchDistance / this.initialTouchDistance;
+                        this.scale = Math.max(0.5, Math.min(2.5, this.originalScale * scaleFactor)); // Clamp scale
+                        const resizeSlider = this.controls.querySelector('input[type="range"]');
+                        if (resizeSlider) resizeSlider.value = this.scale.toString();
+                        Renderer.forceUpdate(this);
+                        return; // Don't continue with drag logic
+                    } else {
+                        return; // Ignore other multi-touch gestures
                     }
-                    clientX = e.touches[0].clientX;
-                    clientY = e.touches[0].clientY;
-                } else {
+                } else { // Mousemove
                     clientX = e.clientX;
                     clientY = e.clientY;
                 }
 
+                // Update position
                 this.x = clientX - this.offsetX;
                 this.y = clientY - this.offsetY;
 
-                const scaledWidth = this.element.clientWidth * this.scale;
-                const scaledHeight = this.element.clientHeight * this.scale;
-                this.x = Math.max(0, Math.min(this.x, window.innerWidth - scaledWidth));
-                this.y = Math.max(0, Math.min(this.y, window.innerHeight - scaledHeight));
+                // Clamp to boundaries with padding
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+                // We need to calculate the scaled width/height for clamping
+                // To avoid layout thrashing, we might pre-calculate or approximate.
+                // For simplicity, we'll use a small trick: calculate current dimensions *without* scale,
+                // then apply scale to get effective dimensions.
+                const currentUnscaledWidth = this.element.clientWidth / this.scale;
+                const currentUnscaledHeight = this.element.clientHeight / this.scale;
 
-                this.applyTransform();
+                const effectiveWidth = currentUnscaledWidth * this.scale;
+                const effectiveHeight = currentUnscaledHeight * this.scale;
+
+                this.x = Math.max(CONFIG.dragBoundaryPadding, Math.min(this.x, viewportWidth - effectiveWidth - CONFIG.dragBoundaryPadding));
+                this.y = Math.max(CONFIG.dragBoundaryPadding, Math.min(this.y, viewportHeight - effectiveHeight - CONFIG.dragBoundaryPadding));
+
+                Renderer.forceUpdate(this); // Update transform immediately during drag
             }
 
-            onStopDrag(e) {
+            /**
+             * Handles the end of a drag or touch gesture.
+             * @param {Event} e - The mouse or touch event.
+             */
+            _onStopDrag(e) {
                 this.isDragging = false;
                 this.element.classList.remove('dragging');
-                this.element.style.zIndex = 50;
+                this.element.style.zIndex = 500; // Revert to selected z-index
+                this.initialTouchDistance = null; // Reset pinch-zoom
 
                 document.removeEventListener('mousemove', this.onDragBound);
                 document.removeEventListener('mouseup', this.onStopDragBound);
                 document.removeEventListener('touchmove', this.onDragBound);
                 document.removeEventListener('touchend', this.onStopDragBound);
-            }
+                document.removeEventListener('touchcancel', this.onStopDragBound);
 
-            remove() {
-                this.element.remove();
-                if (selectedItem === this) {
-                    selectedItem = null;
+                // If it was a pinch-zoom, we'll keep the current scale as the new originalScale
+                if (e.type === 'touchend' && this.originalTouchDistance !== null) {
+                    this.originalScale = this.scale;
                 }
             }
-        }
-        // Bind functions once in constructor to maintain 'this' context
-        DraggableItem.prototype.onDragBound = null;
-        DraggableItem.prototype.onStopDragBound = null;
 
-
-        // --- Ornament Class (inherits from DraggableItem) ---
-        class Ornament extends DraggableItem {
-            constructor(src) {
-                super(src, 'ornament-wrapper', 'bottom center');
-                this.initPositionAndSize();
-                this.onDragBound = this.onDrag.bind(this);
-                this.onStopDragBound = this.onStopDrag.bind(this);
+            /**
+             * Removes the item from the DOM and from the aquarium's item list.
+             */
+            remove() {
+                this.element.remove();
+                Renderer.remove(this);
             }
 
+            // Future layer management methods
+            // bringForward() {
+            //     // Logic to increment z-index relative to other items
+            //     // Example: aquarium.bringItemForward(this);
+            //     this.element.style.zIndex = Math.min(1000, parseInt(this.element.style.zIndex || (this instanceof Ornament ? 10 : 20)) + 1);
+            // }
+
+            // sendBackward() {
+            //     // Logic to decrement z-index relative to other items
+            //     // Example: aquarium.sendItemBackward(this);
+            //     this.element.style.zIndex = Math.max(1, parseInt(this.element.style.zIndex || (this instanceof Ornament ? 10 : 20)) - 1);
+            // }
+        }
+
+        // --- Ornament Class ---
+        class Ornament extends DraggableItem {
+            /**
+             * Represents an ornament in the aquarium.
+             * @param {object} metadata - Ornament metadata {id, name, src, defaultScale}.
+             * @param {number|null} [initialX=null] - Optional initial X coordinate.
+             * @param {number|null} [initialY=null] - Optional initial Y coordinate.
+             */
+            constructor(metadata, initialX = null, initialY = null) {
+                super(metadata.id, CONFIG.ornamentAssetPath + metadata.src, 'ornament-wrapper', 'bottom center', metadata.defaultScale || 1.0);
+                this.name = metadata.name;
+                this.initPositionAndSize(initialX, initialY);
+            }
+
+            /**
+             * Overrides base class to set ornaments at the bottom.
+             * @param {number|null} [initialX=null] - Optional initial X coordinate.
+             * @param {number|null} [initialY=null] - Optional initial Y coordinate.
+             */
             initPositionAndSize(initialX = null, initialY = null) {
-                const viewportWidth = window.innerWidth;
-                const viewportHeight = window.innerHeight;
+                AssetLoader.preloadImage(this.src).then(img => {
+                    const viewportWidth = window.innerWidth;
+                    const viewportHeight = window.innerHeight;
 
-                const baseWidth = getRandom(viewportWidth * 0.12, viewportWidth * 0.28);
-                this.element.style.width = `${baseWidth}px`;
-                this.element.style.height = 'auto';
+                    const baseWidth = getRandom(viewportWidth * CONFIG.ornamentMinSize, viewportWidth * CONFIG.ornamentMaxSize);
+                    this.element.style.width = `${baseWidth}px`;
+                    this.element.style.height = 'auto';
 
-                const applyInitialPosition = () => {
-                    const ornamentHeight = this.img.clientHeight;
-                    const ornamentWidth = this.img.clientWidth;
+                    const ornamentWidth = img.naturalWidth * (baseWidth / img.naturalWidth);
+                    const ornamentHeight = img.naturalHeight * (baseWidth / img.naturalWidth);
 
-                    this.scale = getRandom(0.7, 1.3); // Random initial scale for ornaments
+                    this.scale = getRandom(0.8, 1.2) * this.originalScale; // Apply random initial scale offset
                     const resizeSlider = this.controls.querySelector('input[type="range"]');
                     if (resizeSlider) resizeSlider.value = this.scale.toString();
 
-                    if (initialX !== null && initialY !== null) {
-                        this.x = initialX - ornamentWidth / 2;
-                        this.y = initialY - ornamentHeight / 2;
-                    } else {
-                        // Place ornaments near the bottom
-                        this.x = getRandom(0, viewportWidth - ornamentWidth);
-                        this.y = viewportHeight - ornamentHeight - (viewportHeight * 0.05);
-                    }
-                    this.applyTransform();
-                };
+                    const effectiveWidth = ornamentWidth * this.scale;
+                    const effectiveHeight = ornamentHeight * this.scale;
 
-                this.img.onload = applyInitialPosition;
-                if (this.img.complete) {
-                     applyInitialPosition();
-                }
+                    if (initialX !== null && initialY !== null) {
+                        this.x = initialX - effectiveWidth / 2;
+                        this.y = initialY - effectiveHeight / 2;
+                    } else {
+                        // Place ornaments near the bottom, with random X
+                        this.x = getRandom(CONFIG.dragBoundaryPadding, viewportWidth - effectiveWidth - CONFIG.dragBoundaryPadding);
+                        this.y = viewportHeight - effectiveHeight - (viewportHeight * 0.05);
+                    }
+
+                    // Ensure within boundaries
+                    this.x = Math.max(CONFIG.dragBoundaryPadding, Math.min(this.x, viewportWidth - effectiveWidth - CONFIG.dragBoundaryPadding));
+                    this.y = Math.max(CONFIG.dragBoundaryPadding, Math.min(this.y, viewportHeight - effectiveHeight - CONFIG.dragBoundaryPadding));
+
+                    Renderer.forceUpdate(this);
+                });
             }
 
+            /**
+             * Applies transform including a subtle floating drift.
+             */
             applyTransform() {
-                const drift = Math.sin(performance.now() * 0.0001) * 5;
+                const drift = Math.sin(performance.now() * CONFIG.ornamentDriftFrequency) * CONFIG.ornamentDriftAmplitude;
                 this.element.style.left = `${this.x}px`;
                 this.element.style.top = `${this.y}px`;
                 this.element.style.transform = `scale(${this.scale}) translateX(${drift}px)`;
@@ -662,279 +1196,590 @@
 
             remove() {
                 super.remove();
-                ornamentsArray = ornamentsArray.filter(orn => orn !== this);
+                aquarium.removeOrnament(this);
             }
         }
 
-
-        // --- Ornament Shop ---
-        function generateShopItems() {
-            shopItemsDiv.innerHTML = '';
-            ornamentImageSources.forEach(src => {
-                const shopItem = document.createElement('div');
-                shopItem.classList.add('shop-item');
-                shopItem.title = src.split('/').pop().split('.')[0].replace(/(\d)/, ' $1');
-
-                const img = document.createElement('img');
-                img.src = src;
-                shopItem.appendChild(img);
-
-                shopItem.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    if (ornamentsArray.length < maxOrnaments) {
-                        const newOrnament = new Ornament(src);
-                        ornamentsArray.push(newOrnament);
-                        newOrnament.select();
-                    } else {
-                        alert(`Maximum ${maxOrnaments} ornaments reached for performance!`);
-                    }
-                });
-                shopItemsDiv.appendChild(shopItem);
-            });
-        }
-
-
-        // --- Fish Class (inherits from DraggableItem) ---
+        // --- Fish Class ---
         class Fish extends DraggableItem {
-            constructor() {
-                super(fishImage, 'fish');
-                this.onDragBound = this.onDrag.bind(this);
-                this.onStopDragBound = this.onStopDrag.bind(this);
+            /**
+             * Represents a fish in the aquarium with automated movement.
+             * @param {object} metadata - Fish metadata {id, name, src, defaultScale}.
+             * @param {number|null} [initialX=null] - Optional initial X coordinate.
+             * @param {number|null} [initialY=null] - Optional initial Y coordinate.
+             */
+            constructor(metadata, initialX = null, initialY = null) {
+                super(metadata.id, CONFIG.fishAssetPath + metadata.src, 'fish-wrapper', 'center center', metadata.defaultScale || 1.0);
+                this.name = metadata.name;
                 this.isAutomated = true; // Fish start in automated movement mode
-                this.initPositionAndSize();
-            }
-
-            initPositionAndSize() {
-                const viewportWidth = window.innerWidth;
-                const viewportHeight = window.innerHeight;
-
-                this.size = getRandom(viewportWidth * 0.04, viewportWidth * 0.1);
-                this.speed = getRandom(0.5, 2);
-                this.amplitude = getRandom(viewportHeight * 0.01, viewportHeight * 0.03);
-                this.frequency = getRandom(0.02, 0.05);
-                this.phase = getRandom(0, Math.PI * 2);
-
-                this.element.style.width = `${this.size}px`;
-
-                // Initial direction and position
                 this.direction = Math.random() < 0.5 ? 1 : -1; // 1 for right, -1 for left
-                this.x = this.direction === 1 ? -this.size : viewportWidth;
-                this.y = getRandom(viewportHeight * 0.1, viewportHeight * 0.7);
+                this.speed = getRandom(0.8, 1.2); // Multiplier for base speed
+                this.verticalAmplitude = getRandom(window.innerHeight * 0.01, window.innerHeight * 0.03);
+                this.verticalFrequency = getRandom(0.02, 0.05);
+                this.phase = getRandom(0, Math.PI * 2); // Initial phase for sine wave
 
-                this.scale = getRandom(0.8, 1.2); // Random initial scale for fish
-                const resizeSlider = this.controls.querySelector('input[type="range"]');
-                if (resizeSlider) resizeSlider.value = this.scale.toString();
-
-                this.applyTransform();
+                this.initPositionAndSize(initialX, initialY);
             }
 
-            // Override onStartDrag to pause automation and select fish
-            onStartDrag(e) {
-                super.onStartDrag(e);
+            /**
+             * Initializes fish position and size.
+             * @param {number|null} [initialX=null] - Optional initial X coordinate.
+             * @param {number|null} [initialY=null] - Optional initial Y coordinate.
+             */
+            initPositionAndSize(initialX = null, initialY = null) {
+                AssetLoader.preloadImage(this.src).then(img => {
+                    const viewportWidth = window.innerWidth;
+                    const viewportHeight = window.innerHeight;
+
+                    const baseWidth = getRandom(viewportWidth * CONFIG.fishMinSize, viewportWidth * CONFIG.fishMaxSize);
+                    this.element.style.width = `${baseWidth}px`;
+                    this.element.style.height = 'auto';
+
+                    const fishWidth = img.naturalWidth * (baseWidth / img.naturalWidth);
+                    const fishHeight = img.naturalHeight * (baseWidth / img.naturalWidth);
+
+                    this.scale = getRandom(0.8, 1.2) * this.originalScale; // Apply random initial scale offset
+                    const resizeSlider = this.controls.querySelector('input[type="range"]');
+                    if (resizeSlider) resizeSlider.value = this.scale.toString();
+
+                    const effectiveWidth = fishWidth * this.scale;
+                    const effectiveHeight = fishHeight * this.scale;
+
+                    if (initialX !== null && initialY !== null) {
+                        this.x = initialX - effectiveWidth / 2;
+                        this.y = initialY - effectiveHeight / 2;
+                        this.isAutomated = false; // If manually placed, stop automation
+                    } else {
+                        // Place fish just outside the screen based on direction
+                        this.x = this.direction === 1 ? -effectiveWidth : viewportWidth;
+                        this.y = getRandom(viewportHeight * 0.1, viewportHeight * 0.7);
+                    }
+
+                    // Clamp to general aquarium boundaries for automated movement
+                    this.x = Math.max(-effectiveWidth, Math.min(this.x, viewportWidth + effectiveWidth)); // Allow off-screen
+                    this.y = Math.max(viewportHeight * 0.05, Math.min(this.y, viewportHeight * 0.75 - effectiveHeight));
+
+                    Renderer.forceUpdate(this);
+                });
+            }
+
+            /**
+             * Overrides onStartDrag to pause automation when dragging.
+             * @param {Event} e - The mouse or touch event.
+             */
+            _onStartDrag(e) {
+                super._onStartDrag(e);
                 this.isAutomated = false; // Pause automation when dragging
             }
 
-            // Override onStopDrag to potentially resume automation (or keep manual)
-            onStopDrag(e) {
-                super.onStopDrag(e);
-                // For fish, we might want to keep it in manual mode after drag
-                // or have an option to resume automation. For now, it stays where it is.
+            /**
+             * Overrides onStopDrag. Automation remains off after manual interaction.
+             * @param {Event} e - The mouse or touch event.
+             */
+            _onStopDrag(e) {
+                super._onStopDrag(e);
+                // After manual drag/resize, fish remains in manual mode.
+                // Could add a button in controls to "Resume Automation" if desired.
             }
 
-
+            /**
+             * Applies fish transform, including direction flip.
+             */
             applyTransform() {
-                // Combined scale and direction flip
                 const flip = this.direction === 1 ? 1 : -1;
                 this.element.style.left = `${this.x}px`;
                 this.element.style.top = `${this.y}px`;
                 this.element.style.transform = `scale(${this.scale * flip}, ${this.scale})`; // Apply flip to X, scale to both
             }
 
-
-            move() {
-                if (!this.isAutomated) return; // Don't move if not automated
+            /**
+             * Updates the fish's position and direction for automated movement.
+             * @param {number} deltaTime - Time elapsed since last frame in milliseconds.
+             */
+            move(deltaTime) {
+                if (!this.isAutomated || this.isDragging) return; // Don't move if not automated or being dragged
 
                 const viewportWidth = window.innerWidth;
                 const viewportHeight = window.innerHeight;
 
-                this.x += this.speed * this.direction;
-                this.y += Math.sin(this.phase) * this.amplitude * 0.1;
-                this.phase += this.frequency;
+                const pixelsPerSecond = CONFIG.fishBaseSpeed * this.speed;
+                const pixelsThisFrame = (pixelsPerSecond * deltaTime) / 1000;
 
-                // Reverse direction if hitting horizontal boundaries
-                if (this.direction === 1 && this.x > viewportWidth) {
-                    this.x = -this.size; // Teleport to other side
+                this.x += pixelsThisFrame * this.direction;
+                this.y += Math.sin(this.phase) * this.verticalAmplitude * 0.1;
+                this.phase += this.verticalFrequency;
+
+                // Edge transition with small padding for smoother disappear/appear
+                const itemRect = this.element.getBoundingClientRect(); // Minimal thrashing as only used at edges
+                const effectiveWidth = itemRect.width;
+
+                if (this.direction === 1 && this.x > viewportWidth + effectiveWidth * 0.1) { // 10% off-screen
+                    this.x = -effectiveWidth * 1.1; // Teleport to other side, 10% off-screen
                     this.y = getRandom(viewportHeight * 0.1, viewportHeight * 0.7); // New vertical path
                     this.direction = -1; // Change direction
-                } else if (this.direction === -1 && this.x < -this.size) {
-                    this.x = viewportWidth; // Teleport to other side
+                } else if (this.direction === -1 && this.x < -effectiveWidth * 0.1) {
+                    this.x = viewportWidth + effectiveWidth * 1.1; // Teleport to other side
                     this.y = getRandom(viewportHeight * 0.1, viewportHeight * 0.7); // New vertical path
                     this.direction = 1; // Change direction
                 }
 
-                // Prevent going too high/low
-                if (this.y < viewportHeight * 0.05 || this.y > viewportHeight * 0.75 - this.size) {
+                // Prevent going too high/low within defined aquarium bounds
+                const minAquariumY = viewportHeight * 0.05;
+                const maxAquariumY = viewportHeight * 0.75 - effectiveWidth; // Using width for rough height calc for fish
+                if (this.y < minAquariumY || this.y > maxAquariumY) {
                     this.phase = -this.phase; // Reverse vertical movement
-                    this.y = Math.max(viewportHeight * 0.05, Math.min(this.y, viewportHeight * 0.75 - this.size));
+                    this.y = Math.max(minAquariumY, Math.min(this.y, maxAquariumY));
                 }
 
-                this.applyTransform();
+                Renderer.forceUpdate(this); // Tell renderer to update this fish's transform
             }
 
             remove() {
                 super.remove();
-                fishArray = fishArray.filter(f => f !== this);
-                fishCount--;
+                aquarium.removeFish(this);
             }
         }
 
-        function addFish() {
-            if (fishCount < maxFish) {
-                const fish = new Fish();
-                fishArray.push(fish);
-                fishCount++;
-            }
-        }
-
-        function removeFish() {
-            if (fishArray.length > 0) {
-                const fishToRemove = fishArray.pop(); // Remove the last added fish
-                fishToRemove.remove();
-            }
-        }
-
-        // --- Bubbles System ---
+        // --- Bubble Class ---
         class Bubble {
+            /**
+             * Represents an animated bubble in the aquarium.
+             */
             constructor() {
                 this.element = document.createElement('div');
                 this.element.classList.add('bubble');
                 aquariumContainer.appendChild(this.element);
 
                 this.initBubble();
+                Renderer.add(this); // Add to renderer
             }
 
+            /**
+             * Initializes bubble properties and position.
+             */
             initBubble() {
                 const viewportWidth = window.innerWidth;
                 const viewportHeight = window.innerHeight;
 
-                this.size = getRandom(5, 20);
-                this.speed = getRandom(0.5, 2);
+                this.size = getRandom(5, 25); // Slightly larger bubbles
+                this.speed = getRandom(40, 100); // Pixels per second
                 this.x = getRandom(0, viewportWidth - this.size);
-                this.y = viewportHeight + getRandom(0, 100);
+                this.y = viewportHeight + getRandom(0, 200); // Start further below
                 this.opacity = getRandom(0.3, 0.7);
+                this.swayFactor = getRandom(5, 15); // How much it sways horizontally
+                this.swaySpeed = getRandom(0.03, 0.08); // How fast it sways
 
                 this.element.style.width = `${this.size}px`;
                 this.element.style.height = `${this.size}px`;
                 this.element.style.opacity = this.opacity;
-                this.element.style.left = `${this.x}px`;
-                this.element.style.top = `${this.y}px`;
                 this.element.style.filter = `blur(${this.size * 0.05}px)`;
+                this.element.style.pointerEvents = 'none'; // Ensure bubbles are not interactive
             }
 
-            move() {
-                const viewportWidth = window.innerWidth;
-                const viewportHeight = window.innerHeight;
-
-                this.y -= this.speed;
-                this.element.style.left = `${this.x + Math.sin(this.y * 0.05) * 5}px`;
+            /**
+             * Applies the bubble's transform.
+             */
+            applyTransform() {
+                this.element.style.left = `${this.x}px`;
                 this.element.style.top = `${this.y}px`;
+                // No scale or rotation, just position
+            }
+
+            /**
+             * Updates the bubble's position, called by the animation loop.
+             * @param {number} deltaTime - Time elapsed since last frame in milliseconds.
+             */
+            move(deltaTime) {
+                const viewportHeight = window.innerHeight;
+                const pixelsThisFrame = (this.speed * deltaTime) / 1000;
+
+                this.y -= pixelsThisFrame;
+                this.x = this.x + Math.sin(this.y * this.swaySpeed) * this.swayFactor * (deltaTime / 1000); // Horizontal sway
 
                 if (this.y < -this.size) {
-                    this.initBubble();
+                    this.initBubble(); // Reinitialize when off-screen
                 }
+                Renderer.forceUpdate(this);
             }
 
             remove() {
                 this.element.remove();
+                Renderer.remove(this);
             }
         }
 
-        function generateBubbles(count) {
-            for (let i = 0; i < count; i++) {
-                bubblesArray.push(new Bubble());
-            }
-        }
+        // --- Aquarium Core Logic ---
+        const aquarium = (() => {
+            const state = {
+                fish: [],
+                ornaments: [],
+                bubbles: [],
+                bubblesEnabled: true,
+                musicPlaying: false,
+                selectedItem: null // Centralized selected item management
+            };
 
-        function toggleBubbles() {
-            bubblesEnabled = !bubblesEnabled;
-            if (bubblesEnabled) {
-                if (bubblesArray.length === 0) {
-                     generateBubbles(20);
+            const selectors = {
+                aquariumContainer: document.getElementById('aquarium-container'),
+                backgroundMusic: document.getElementById('backgroundMusic')
+            };
+
+            /**
+             * Adds a fish to the aquarium.
+             * @param {object} metadata - Fish metadata.
+             * @param {number|null} [x=null] - Initial X coordinate.
+             * @param {number|null} [y=null] - Initial Y coordinate.
+             */
+            const addFish = (metadata, x = null, y = null) => {
+                if (state.fish.length < CONFIG.maxFish) {
+                    const newFish = new Fish(metadata, x, y);
+                    state.fish.push(newFish);
+                    return newFish;
+                } else {
+                    alert(`Maximum ${CONFIG.maxFish} fish reached!`);
+                    return null;
                 }
-                toggleBubblesBtn.textContent = "Disable Bubbles";
-            } else {
-                bubblesArray.forEach(bubble => bubble.remove());
-                bubblesArray = [];
-                toggleBubblesBtn.textContent = "Enable Bubbles";
-            }
-        }
+            };
 
-        // --- Animation Loop ---
-        let lastTimestamp = 0;
+            /**
+             * Removes a specific fish from the aquarium.
+             * @param {Fish} fishToRemove - The fish object to remove.
+             */
+            const removeFish = (fishToRemove) => {
+                const index = state.fish.indexOf(fishToRemove);
+                if (index > -1) {
+                    state.fish.splice(index, 1);
+                    fishToRemove.remove(); // Remove from DOM and renderer
+                }
+            };
 
-        function animate(timestamp) {
-            const deltaTime = timestamp - lastTimestamp;
-            lastTimestamp = timestamp;
+            /**
+             * Removes the last added fish from the aquarium.
+             */
+            const removeLastFish = () => {
+                if (state.fish.length > 0) {
+                    const fishToRemove = state.fish.pop();
+                    fishToRemove.remove();
+                    UIManager.deselectItem();
+                }
+            };
 
-            // Ornaments apply their drift in their own applyTransform
-            ornamentsArray.forEach(ornament => {
-                 if (!ornament.isDragging) { // Only drift if not dragging
-                    ornament.applyTransform();
-                 }
-            });
+            /**
+             * Adds an ornament to the aquarium.
+             * @param {object} metadata - Ornament metadata.
+             * @param {number|null} [x=null] - Initial X coordinate.
+             * @param {number|null} [y=null] - Initial Y coordinate.
+             */
+            const addOrnament = (metadata, x = null, y = null) => {
+                if (state.ornaments.length < CONFIG.maxOrnaments) {
+                    const newOrnament = new Ornament(metadata, x, y);
+                    state.ornaments.push(newOrnament);
+                    return newOrnament;
+                } else {
+                    alert(`Maximum ${CONFIG.maxOrnaments} ornaments reached!`);
+                    return null;
+                }
+            };
 
+            /**
+             * Removes a specific ornament from the aquarium.
+             * @param {Ornament} ornamentToRemove - The ornament object to remove.
+             */
+            const removeOrnament = (ornamentToRemove) => {
+                const index = state.ornaments.indexOf(ornamentToRemove);
+                if (index > -1) {
+                    state.ornaments.splice(index, 1);
+                    ornamentToRemove.remove(); // Remove from DOM and renderer
+                }
+            };
 
-            fishArray.forEach(fish => fish.move()); // Fish move() function now checks isAutomated
+            /**
+             * Generates a specified number of bubbles.
+             * @param {number} count - The number of bubbles to generate.
+             */
+            const generateBubbles = (count) => {
+                for (let i = 0; i < count; i++) {
+                    state.bubbles.push(new Bubble());
+                }
+            };
 
-            if (bubblesEnabled) {
-                bubblesArray.forEach(bubble => bubble.move());
-            }
+            /**
+             * Toggles bubble visibility and animation.
+             */
+            const toggleBubbles = () => {
+                state.bubblesEnabled = !state.bubblesEnabled;
+                if (state.bubblesEnabled) {
+                    if (state.bubbles.length === 0) {
+                        generateBubbles(CONFIG.bubbleCount);
+                    }
+                    UIManager.toggleBubblesBtn.textContent = "🫧 Bubbles";
+                    UIManager.toggleBubblesBtn.innerHTML = '<i class="fas fa-bubble"></i> Bubbles';
 
-            requestAnimationFrame(animate);
-        }
+                } else {
+                    state.bubbles.forEach(bubble => bubble.remove()); // Remove from DOM and renderer
+                    state.bubbles = [];
+                    UIManager.toggleBubblesBtn.textContent = "🚫 Bubbles";
+                    UIManager.toggleBubblesBtn.innerHTML = '<i class="fas fa-slash"></i> Bubbles';
+                }
+            };
 
-        // --- Global Deselect Listener ---
-        aquariumContainer.addEventListener('click', (e) => {
-            if (selectedItem && !e.target.closest('.draggable-item')) {
-                selectedItem.deselect();
-            }
+            /**
+             * Toggles background music playback.
+             */
+            const toggleMusic = () => {
+                if (state.musicPlaying) {
+                    selectors.backgroundMusic.pause();
+                    UIManager.playMusicBtn.innerHTML = '<i class="fas fa-play"></i> Music';
+                } else {
+                    selectors.backgroundMusic.play().catch(e => console.error("Music play prevented:", e));
+                    UIManager.playMusicBtn.innerHTML = '<i class="fas fa-pause"></i> Music';
+                }
+                state.musicPlaying = !state.musicPlaying;
+            };
+
+            let lastFrameTime = performance.now();
+            /**
+             * Main animation loop for moving fish and bubbles.
+             * @param {number} currentTime - The current timestamp from requestAnimationFrame.
+             */
+            const animate = (currentTime) => {
+                const deltaTime = currentTime - lastFrameTime; // Milliseconds since last frame
+                lastFrameTime = currentTime;
+
+                // Move automated fish
+                state.fish.forEach(fish => fish.move(deltaTime));
+
+                // Move bubbles if enabled
+                if (state.bubblesEnabled) {
+                    state.bubbles.forEach(bubble => bubble.move(deltaTime));
+                }
+
+                // Renderer handles applyTransform for all registered items
+                requestAnimationFrame(animate);
+            };
+
+            /**
+             * Re-initializes item positions and sizes after window resize.
+             */
+            const handleResize = () => {
+                state.fish.forEach(fish => fish.initPositionAndSize());
+                state.ornaments.forEach(ornament => ornament.initPositionAndSize());
+                if (state.bubblesEnabled) {
+                    state.bubbles.forEach(bubble => bubble.initBubble());
+                }
+            };
+
+            /**
+             * Initializes the aquarium with initial items and starts animation.
+             */
+            const init = () => {
+                // Initial fish and ornaments
+                const fishMetadata = AssetLoader.loadAssetMetadata().fish;
+                const ornamentMetadata = AssetLoader.loadAssetMetadata().ornaments;
+
+                for (let i = 0; i < CONFIG.initialFishCount; i++) {
+                    const randomFishType = fishMetadata[Math.floor(Math.random() * fishMetadata.length)];
+                    addFish(randomFishType);
+                }
+                for (let i = 0; i < CONFIG.initialOrnamentCount; i++) {
+                    const randomOrnamentType = ornamentMetadata[Math.floor(Math.random() * ornamentMetadata.length)];
+                    addOrnament(randomOrnamentType);
+                }
+
+                if (state.bubblesEnabled) {
+                    generateBubbles(CONFIG.bubbleCount);
+                }
+
+                requestAnimationFrame(animate); // Start animation loop
+            };
+
+            return {
+                init,
+                addFish,
+                removeLastFish,
+                addOrnament,
+                toggleBubbles,
+                toggleMusic,
+                handleResize,
+                getState: () => state // For debugging or future save/load
+            };
+        })();
+
+        // --- UI Manager Module ---
+        // Handles all UI interactions and updates the DOM related to UI elements.
+        const UIManager = (() => {
+            let shopOpen = false;
+            let currentShopTab = 'fish';
+            let selectedItem = null; // Reflects aquarium's selectedItem
+
+            const elements = {
+                toggleShopBtn: document.getElementById('toggle-shop-btn'),
+                shopPanel: document.getElementById('shop-panel'),
+                shopFishGrid: document.getElementById('shop-fish-grid'),
+                shopOrnamentsGrid: document.getElementById('shop-ornaments-grid'),
+                tabFish: document.getElementById('tab-fish'),
+                tabOrnaments: document.getElementById('tab-ornaments'),
+                playMusicBtn: document.getElementById('playMusicBtn'),
+                addFishBtn: document.getElementById('addFishBtn'),
+                removeFishBtn: document.getElementById('removeFishBtn'),
+                toggleBubblesBtn: document.getElementById('toggleBubblesBtn'),
+                aquariumContainer: document.getElementById('aquarium-container')
+            };
+
+            /**
+             * Toggles the visibility of the shop panel.
+             */
+            const toggleShopPanel = () => {
+                shopOpen = !shopOpen;
+                elements.shopPanel.classList.toggle('open', shopOpen);
+                elements.toggleShopBtn.classList.toggle('shop-open', shopOpen);
+                // Optionally adjust controls panel if it conflicts
+            };
+
+            /**
+             * Switches between Fish and Ornament tabs in the shop.
+             * @param {string} tabName - 'fish' or 'ornaments'.
+             */
+            const switchShopTab = (tabName) => {
+                currentShopTab = tabName;
+                elements.tabFish.classList.toggle('active', tabName === 'fish');
+                elements.tabOrnaments.classList.toggle('active', tabName === 'ornaments');
+                elements.shopFishGrid.style.display = tabName === 'fish' ? 'grid' : 'none';
+                elements.shopOrnamentsGrid.style.display = tabName === 'ornaments' ? 'grid' : 'none';
+            };
+
+            /**
+             * Generates shop items from loaded asset metadata.
+             */
+            const generateShopItems = () => {
+                const { fish: fishMetadata, ornaments: ornamentMetadata } = AssetLoader.loadAssetMetadata();
+
+                elements.shopFishGrid.innerHTML = '';
+                fishMetadata.forEach(item => {
+                    const shopItem = _createShopItem(item, CONFIG.fishAssetPath);
+                    shopItem.addEventListener('click', () => {
+                        const newFish = aquarium.addFish(item, window.innerWidth / 2, window.innerHeight / 2); // Add at center
+                        if (newFish) {
+                            newFish.select(); // Select the newly added item
+                            showAddItemFeedback(shopItem, `+ ${item.name}`);
+                        }
+                    });
+                    elements.shopFishGrid.appendChild(shopItem);
+                });
+
+                elements.shopOrnamentsGrid.innerHTML = '';
+                ornamentMetadata.forEach(item => {
+                    const shopItem = _createShopItem(item, CONFIG.ornamentAssetPath);
+                    shopItem.addEventListener('click', () => {
+                        const newOrnament = aquarium.addOrnament(item, window.innerWidth / 2, window.innerHeight / 2); // Add at center
+                        if (newOrnament) {
+                            newOrnament.select(); // Select the newly added item
+                            showAddItemFeedback(shopItem, `+ ${item.name}`);
+                        }
+                    });
+                    elements.shopOrnamentsGrid.appendChild(shopItem);
+                });
+            };
+
+            /**
+             * Creates a single shop item DOM element.
+             * @param {object} item - The item metadata.
+             * @param {string} basePath - The base path for the image.
+             * @returns {HTMLElement} The created shop item element.
+             */
+            const _createShopItem = (item, basePath) => {
+                const shopItem = document.createElement('div');
+                shopItem.classList.add('shop-item');
+                shopItem.title = item.name;
+
+                const img = document.createElement('img');
+                img.src = basePath + item.src;
+                img.loading = 'lazy'; // Lazy load shop images
+                shopItem.appendChild(img);
+
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = item.name;
+                shopItem.appendChild(nameSpan);
+
+                return shopItem;
+            };
+
+            /**
+             * Sets the currently selected item in the UI.
+             * @param {DraggableItem} item - The item to select.
+             */
+            const selectItem = (item) => {
+                if (selectedItem && selectedItem !== item) {
+                    selectedItem.deselect();
+                }
+                selectedItem = item;
+                item.element.classList.add('selected');
+                item.element.style.zIndex = 500; // Bring to front
+            };
+
+            /**
+             * Deselects the current item.
+             */
+            const deselectItem = () => {
+                if (selectedItem) {
+                    selectedItem.deselect();
+                    selectedItem = null;
+                }
+            };
+
+            /**
+             * Initializes all UI event listeners.
+             */
+            const initEventListeners = () => {
+                elements.toggleShopBtn.addEventListener('click', toggleShopPanel);
+                elements.tabFish.addEventListener('click', () => switchShopTab('fish'));
+                elements.tabOrnaments.addEventListener('click', () => switchShopTab('ornaments'));
+
+                elements.playMusicBtn.addEventListener('click', aquarium.toggleMusic);
+                elements.addFishBtn.addEventListener('click', () => {
+                    const fishMetadata = AssetLoader.loadAssetMetadata().fish;
+                    const randomFishType = fishMetadata[Math.floor(Math.random() * fishMetadata.length)];
+                    const newFish = aquarium.addFish(randomFishType, window.innerWidth / 2, window.innerHeight / 2);
+                    if (newFish) newFish.select();
+                });
+                elements.removeFishBtn.addEventListener('click', aquarium.removeLastFish);
+                elements.toggleBubblesBtn.addEventListener('click', aquarium.toggleBubbles);
+
+                // Global deselect listener for clicking outside an item
+                elements.aquariumContainer.addEventListener('click', (e) => {
+                    if (selectedItem && !e.target.closest('.draggable-item')) {
+                        deselectItem();
+                    }
+                });
+
+                // Window resize handler
+                window.addEventListener('resize', debounce(aquarium.handleResize, 200));
+            };
+
+            return {
+                init: () => {
+                    initEventListeners();
+                    generateShopItems();
+                    switchShopTab('fish'); // Set default tab
+                },
+                selectItem,
+                deselectItem,
+                playMusicBtn: elements.playMusicBtn, // Expose for aquarium to update icon
+                toggleBubblesBtn: elements.toggleBubblesBtn // Expose for aquarium to update icon
+            };
+        })();
+
+        // --- Application Initialization ---
+        window.addEventListener('DOMContentLoaded', () => {
+            UIManager.init();
+            aquarium.init();
         });
 
-        // --- Event Listeners ---
-        playMusicBtn.addEventListener('click', () => {
-            backgroundMusic.play().catch(e => console.log("Music play prevented:", e));
-        });
-        addFishBtn.addEventListener('click', addFish);
-        removeFishBtn.addEventListener('click', removeFish);
-        toggleBubblesBtn.addEventListener('click', toggleBubbles);
-
-        // --- Initialization ---
-        window.onload = () => {
-            generateShopItems();
-
-            for (let i = 0; i < 5; i++) {
-                addFish();
-            }
-            generateBubbles(20);
-            requestAnimationFrame(animate);
-        };
-
-        const debouncedResize = debounce(() => {
-            fishArray.forEach(fish => fish.initPositionAndSize()); // Re-initialize fish for new size
-            if (bubblesEnabled) {
-                bubblesArray.forEach(bubble => bubble.initBubble());
-            }
-            // Ornaments need to re-clamp their positions based on new viewport size
-            ornamentsArray.forEach(ornament => {
-                const scaledWidth = ornament.element.clientWidth * ornament.scale;
-                const scaledHeight = ornament.element.clientHeight * ornament.scale;
-                ornament.x = Math.max(0, Math.min(ornament.x, window.innerWidth - scaledWidth));
-                ornament.y = Math.max(0, Math.min(ornament.y, window.innerHeight - scaledHeight));
-                ornament.applyTransform(); // Re-apply transform to update position
-            });
-        }, 200);
-
-        window.addEventListener('resize', debouncedResize);
+        // Debugging / Global Access (for console interaction)
+        window.aquarium = aquarium;
+        window.UIManager = UIManager;
+        window.Renderer = Renderer;
+        window.AssetLoader = AssetLoader;
 
     </script>
 </body>
