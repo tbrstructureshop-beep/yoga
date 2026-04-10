@@ -9,6 +9,7 @@
             --glass-bg: rgba(255, 255, 255, 0.2);
             --glass-border: rgba(255, 255, 255, 0.3);
             --glass-shadow: rgba(0, 0, 0, 0.1);
+            --selected-glow: 0 0 10px 5px rgba(0, 255, 255, 0.7), 0 0 20px 10px rgba(0, 200, 200, 0.5);
         }
 
         body {
@@ -23,6 +24,10 @@
             justify-content: center;
             align-items: center;
             cursor: default; /* Default cursor */
+            user-select: none; /* Prevent text selection during drag */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
         }
 
         .aquarium-background {
@@ -50,12 +55,112 @@
             pointer-events: none; /* Allows clicks to pass through to elements below */
         }
 
-        .ornament {
+        #aquarium-container {
             position: absolute;
-            bottom: 0;
-            z-index: 1;
-            transition: transform 0.5s ease-out; /* For subtle parallax */
-            cursor: pointer; /* Indicate interactivity */
+            width: 100%;
+            height: 100%;
+            touch-action: none; /* Prevent browser touch actions like pull-to-refresh */
+        }
+
+        .ornament-wrapper {
+            position: absolute;
+            transform-origin: bottom center; /* Scale from bottom for ornaments */
+            will-change: transform, left, top;
+            touch-action: none; /* Crucial for drag and drop on touch devices */
+            z-index: 1; /* Default for ornaments */
+            cursor: grab; /* Indicate draggable */
+            transition: box-shadow 0.2s ease-out; /* Smooth glow */
+        }
+
+        .ornament-wrapper.dragging {
+            cursor: grabbing;
+            z-index: 100; /* Bring to front when dragging */
+        }
+
+        .ornament-wrapper.selected {
+            box-shadow: var(--selected-glow);
+            z-index: 50; /* Bring to front when selected */
+        }
+
+        .ornament-image {
+            display: block;
+            width: 100%;
+            height: auto;
+            pointer-events: none; /* Allow events to pass to wrapper for drag */
+        }
+
+        .ornament-controls {
+            position: absolute;
+            top: -30px; /* Position above the ornament */
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--glass-bg);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            padding: 5px 10px;
+            display: flex;
+            gap: 5px;
+            box-shadow: 0 2px 5px var(--glass-shadow);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease-out;
+            z-index: 51; /* Above the ornament */
+            white-space: nowrap; /* Prevent buttons from wrapping */
+        }
+
+        .ornament-wrapper.selected .ornament-controls {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .ornament-controls button, .ornament-controls input[type="range"] {
+            background: rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: #333;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8em;
+            font-weight: bold;
+            transition: all 0.1s ease;
+        }
+        .ornament-controls button {
+            padding: 5px 8px;
+        }
+
+        .ornament-controls button:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .ornament-controls input[type="range"] {
+            width: 80px;
+            -webkit-appearance: none;
+            height: 8px;
+            margin: 0 5px;
+            background: rgba(255, 255, 255, 0.3);
+            outline: none;
+            border-radius: 4px;
+        }
+
+        .ornament-controls input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #00aaff;
+            cursor: pointer;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+        }
+
+        .ornament-controls input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #00aaff;
+            cursor: pointer;
+            border: 1px solid rgba(0, 0, 0, 0.2);
         }
 
         .fish {
@@ -126,7 +231,66 @@
             box-shadow: none;
         }
 
-        /* Responsive adjustments for controls */
+        /* Ornament Shop Panel */
+        .shop-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 4px 10px var(--glass-shadow);
+            z-index: 10;
+            user-select: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .shop-panel h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 1.1em;
+            text-align: center;
+        }
+
+        .shop-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .shop-item {
+            width: 60px; /* Thumbnail size */
+            height: 60px;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background-color: rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .shop-item:hover {
+            border-color: #00aaff;
+            box-shadow: 0 0 5px rgba(0, 170, 255, 0.5);
+        }
+
+        .shop-item img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+            display: block;
+        }
+
+        /* Responsive adjustments */
         @media (max-width: 768px) {
             .controls-panel {
                 top: 10px;
@@ -137,6 +301,30 @@
             .controls-panel button {
                 padding: 8px 12px;
                 font-size: 0.8em;
+            }
+
+            .shop-panel {
+                top: 10px;
+                left: 10px;
+                padding: 10px;
+                gap: 8px;
+            }
+            .shop-panel h3 {
+                font-size: 1em;
+                margin-bottom: 5px;
+            }
+            .shop-items {
+                gap: 5px;
+            }
+            .shop-item {
+                width: 50px;
+                height: 50px;
+            }
+
+            /* Adjust ornament controls for smaller screens */
+            .ornament-controls {
+                transform: translateX(-50%) scale(0.8);
+                top: -25px;
             }
         }
     </style>
@@ -158,18 +346,26 @@
         <button id="toggleBubblesBtn">Toggle Bubbles</button>
     </div>
 
+    <div class="shop-panel">
+        <h3>Ornament Shop</h3>
+        <div class="shop-items" id="shopItems">
+            <!-- Shop items will be generated here by JS -->
+        </div>
+    </div>
+
     <!-- Looped background music -->
-    <audio id="backgroundMusic" src="https://raw.githubusercontent.com/tbrstructureshop-beep/yoga/06966579dd85078afe6a8d1a4852680435a342b7/aquarium/838fc208-2aa9-407e-ae4a-f7178acb7e65.mp3" autoplay loop></audio>
+    <audio id="backgroundMusic" src="838fc208-2aa9-407e-ae4a-f7178acb7e65.mp3" autoplay loop></audio>
 
     <script>
         const aquariumContainer = document.getElementById('aquarium-container');
         const addFishBtn = document.getElementById('addFishBtn');
         const removeFishBtn = document.getElementById('removeFishBtn');
         const toggleBubblesBtn = document.getElementById('toggleBubblesBtn');
+        const shopItemsDiv = document.getElementById('shopItems');
         const backgroundMusic = document.getElementById('backgroundMusic');
 
         // Paths are relative to the HTML file (index.html), which is inside yoga/aquarium/
-        const ornamentImages = [
+        const ornamentImageSources = [ // Renamed to clearly indicate they are sources
             'ornamen/ornamen1.png',
             'ornamen/ornamen2.png',
             'ornamen/ornamen3.png',
@@ -177,12 +373,16 @@
         ];
         const fishImage = 'fish/fish1.png';
 
-        const maxFish = 10; // Max fish count
+        const maxFish = 10;
+        const maxOrnaments = 20; // Limit total ornaments for performance
+
         let fishCount = 0;
         let fishArray = [];
-        let ornamentsArray = []; // Keep track of ornaments
+        let ornamentsArray = [];
         let bubblesArray = [];
         let bubblesEnabled = true;
+
+        let selectedOrnament = null; // Track currently selected ornament
 
         // --- Utility Functions ---
         function getRandom(min, max) {
@@ -197,65 +397,228 @@
             };
         }
 
-        // --- Ornaments ---
+        // --- Ornament Class (Enhanced) ---
         class Ornament {
             constructor(src) {
-                this.element = document.createElement('img');
-                this.element.src = src;
-                this.element.classList.add('ornament');
+                this.src = src;
+                this.element = document.createElement('div');
+                this.element.classList.add('ornament-wrapper');
                 aquariumContainer.appendChild(this.element);
-                this.element.addEventListener('click', this.remove.bind(this)); // Add click listener
+
+                this.img = document.createElement('img');
+                this.img.src = src;
+                this.img.classList.add('ornament-image');
+                this.element.appendChild(this.img);
+
+                this.controls = this.createControls();
+                this.element.appendChild(this.controls);
+
+                this.x = 0; // Current x position
+                this.y = 0; // Current y position
+                this.scale = 1; // Current scale factor
+                this.isDragging = false;
+                this.offsetX = 0;
+                this.offsetY = 0;
+
+                this.addEventListeners();
+                this.deselect(); // Start deselected
 
                 this.initPositionAndSize();
             }
 
-            initPositionAndSize() {
+            createControls() {
+                const controlsDiv = document.createElement('div');
+                controlsDiv.classList.add('ornament-controls');
+
+                // Delete Button
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = '❌';
+                deleteBtn.title = 'Delete Ornament';
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent re-selecting the ornament
+                    this.remove();
+                });
+                controlsDiv.appendChild(deleteBtn);
+
+                // Resize Slider
+                const resizeSlider = document.createElement('input');
+                resizeSlider.type = 'range';
+                resizeSlider.min = '0.5';
+                resizeSlider.max = '2.0';
+                resizeSlider.step = '0.05';
+                resizeSlider.value = this.scale.toString();
+                resizeSlider.title = 'Resize';
+                resizeSlider.addEventListener('input', (e) => {
+                    this.scale = parseFloat(e.target.value);
+                    this.applyTransform();
+                });
+                // Prevent drag from interfering with slider
+                resizeSlider.addEventListener('mousedown', (e) => e.stopPropagation());
+                resizeSlider.addEventListener('touchstart', (e) => e.stopPropagation());
+                controlsDiv.appendChild(resizeSlider);
+
+                return controlsDiv;
+            }
+
+            addEventListeners() {
+                this.element.addEventListener('mousedown', this.onStartDrag.bind(this));
+                this.element.addEventListener('touchstart', this.onStartDrag.bind(this), { passive: false });
+            }
+
+            initPositionAndSize(initialX = null, initialY = null) {
                 const viewportWidth = window.innerWidth;
                 const viewportHeight = window.innerHeight;
 
-                const baseWidth = getRandom(viewportWidth * 0.12, viewportWidth * 0.28); // e.g., 12-28% of viewport width
+                const baseWidth = getRandom(viewportWidth * 0.12, viewportWidth * 0.28);
                 this.element.style.width = `${baseWidth}px`;
-                this.element.style.height = 'auto';
+                this.element.style.height = 'auto'; // Maintain aspect ratio
 
-                // Use onload to ensure clientHeight is available
-                this.element.onload = () => {
-                    const ornamentHeight = this.element.clientHeight;
-                    const bottomOffset = getRandom(0.01 * viewportHeight, 0.08 * viewportHeight); // 1-8% from bottom
-                    this.element.style.bottom = `${bottomOffset}px`;
-                    this.element.style.left = `${getRandom(0, viewportWidth - baseWidth)}px`; // Random horizontal position
+                // Use onload to ensure clientHeight is available for initial positioning
+                this.img.onload = () => {
+                    const ornamentHeight = this.img.clientHeight; // Use image height for positioning
+                    const ornamentWidth = this.img.clientWidth;
 
-                    // Add a random delay for subtle appearance animation if needed (optional)
-                    // this.element.style.opacity = 0;
-                    // setTimeout(() => { this.element.style.opacity = 1; }, getRandom(0, 500));
+                    this.scale = 1; // Reset scale
+                    this.controls.querySelector('input[type="range"]').value = this.scale.toString();
+
+
+                    if (initialX !== null && initialY !== null) {
+                        this.x = initialX - ornamentWidth / 2;
+                        this.y = initialY - ornamentHeight / 2;
+                    } else {
+                        // Default to bottom-center for new ornaments
+                        this.x = (viewportWidth / 2) - (ornamentWidth / 2);
+                        this.y = viewportHeight - ornamentHeight - (viewportHeight * 0.05); // A bit above bottom
+                    }
+                    this.applyTransform();
                 };
 
-                // If image is already loaded, ensure positioning happens
-                if (this.element.complete) {
-                     this.element.onload();
+                // If image is already loaded, execute onload directly
+                if (this.img.complete) {
+                     this.img.onload();
                 }
+            }
+
+            applyTransform() {
+                // We're using absolute positioning (left/top) for initial placement and direct pixel manipulation,
+                // and `transform: scale()` for resizing.
+                // The draggable position should update `this.x` and `this.y`, then `left` and `top`.
+                this.element.style.left = `${this.x}px`;
+                this.element.style.top = `${this.y}px`;
+                this.element.style.transform = `scale(${this.scale})`;
+            }
+
+            select() {
+                if (selectedOrnament && selectedOrnament !== this) {
+                    selectedOrnament.deselect();
+                }
+                this.element.classList.add('selected');
+                this.element.style.zIndex = 50; // Bring selected to front
+                selectedOrnament = this;
+            }
+
+            deselect() {
+                this.element.classList.remove('selected');
+                this.element.style.zIndex = 1; // Reset z-index
+                if (selectedOrnament === this) {
+                    selectedOrnament = null;
+                }
+            }
+
+            onStartDrag(e) {
+                e.preventDefault(); // Prevent default browser actions (e.g., image drag, scrolling)
+                this.select(); // Select this ornament when interaction starts
+
+                this.isDragging = true;
+                this.element.classList.add('dragging');
+                this.element.style.zIndex = 100; // Bring to absolute front when dragging
+
+                let clientX, clientY;
+                if (e.type === 'touchstart') {
+                    clientX = e.touches[0].clientX;
+                    clientY = e.touches[0].clientY;
+                } else {
+                    clientX = e.clientX;
+                    clientY = e.clientY;
+                }
+
+                // Calculate offset from mouse/touch to element's top-left corner
+                const rect = this.element.getBoundingClientRect();
+                this.offsetX = clientX - rect.left;
+                this.offsetY = clientY - rect.top;
+
+                // Add global listeners for dragging
+                document.addEventListener('mousemove', this.onDrag.bind(this));
+                document.addEventListener('mouseup', this.onStopDrag.bind(this));
+                document.addEventListener('touchmove', this.onDrag.bind(this), { passive: false });
+                document.addEventListener('touchend', this.onStopDrag.bind(this));
+            }
+
+            onDrag(e) {
+                if (!this.isDragging) return;
+
+                let clientX, clientY;
+                if (e.type === 'touchmove') {
+                    clientX = e.touches[0].clientX;
+                    clientY = e.touches[0].clientY;
+                } else {
+                    clientX = e.clientX;
+                    clientY = e.clientY;
+                }
+
+                this.x = clientX - this.offsetX;
+                this.y = clientY - this.offsetY;
+
+                // Clamp to boundaries
+                this.x = Math.max(0, Math.min(this.x, window.innerWidth - this.element.clientWidth * this.scale));
+                this.y = Math.max(0, Math.min(this.y, window.innerHeight - this.element.clientHeight * this.scale));
+
+                this.applyTransform(); // Update position
+            }
+
+            onStopDrag(e) {
+                this.isDragging = false;
+                this.element.classList.remove('dragging');
+                // Don't deselect here, keep it selected for controls
+                document.removeEventListener('mousemove', this.onDrag.bind(this));
+                document.removeEventListener('mouseup', this.onStopDrag.bind(this));
+                document.removeEventListener('touchmove', this.onDrag.bind(this));
+                document.removeEventListener('touchend', this.onStopDrag.bind(this));
             }
 
             remove() {
                 this.element.remove();
                 ornamentsArray = ornamentsArray.filter(orn => orn !== this);
-                // After removing, consider re-arranging remaining ornaments or adding new ones
-                // For simplicity, we just remove it. New ones can be added manually or on resize.
+                if (selectedOrnament === this) {
+                    selectedOrnament = null;
+                }
             }
         }
 
 
-        function loadInitialOrnaments() {
-            // Clear existing ornaments before loading new ones (important on resize)
-            document.querySelectorAll('.ornament').forEach(orn => orn.remove());
-            ornamentsArray = []; // Clear array as well
+        // --- Ornament Shop ---
+        function generateShopItems() {
+            shopItemsDiv.innerHTML = ''; // Clear previous items
+            ornamentImageSources.forEach(src => {
+                const shopItem = document.createElement('div');
+                shopItem.classList.add('shop-item');
+                shopItem.title = src.split('/').pop().split('.')[0].replace(/(\d)/, ' $1'); // e.g., "ornamen 1"
 
-            const numOrnamentsToLoad = Math.min(ornamentImages.length, getRandom(3, 5)); // Load 3-5 unique ornaments initially
-            const shuffledOrnaments = ornamentImages.sort(() => 0.5 - Math.random()); // Shuffle for variety
+                const img = document.createElement('img');
+                img.src = src;
+                shopItem.appendChild(img);
 
-            for(let i = 0; i < numOrnamentsToLoad; i++) {
-                const ornament = new Ornament(shuffledOrnaments[i]);
-                ornamentsArray.push(ornament);
-            }
+                shopItem.addEventListener('click', () => {
+                    if (ornamentsArray.length < maxOrnaments) {
+                        const newOrnament = new Ornament(src);
+                        ornamentsArray.push(newOrnament);
+                        newOrnament.select(); // Select new ornament automatically
+                    } else {
+                        alert(`Maximum ${maxOrnaments} ornaments reached for performance!`);
+                    }
+                });
+                shopItemsDiv.appendChild(shopItem);
+            });
         }
 
 
@@ -413,12 +776,11 @@
         function toggleBubbles() {
             bubblesEnabled = !bubblesEnabled;
             if (bubblesEnabled) {
-                if (bubblesArray.length === 0) { // Only generate if empty
+                if (bubblesArray.length === 0) {
                      generateBubbles(20);
                 }
                 toggleBubblesBtn.textContent = "Disable Bubbles";
             } else {
-                // Remove all current bubbles
                 bubblesArray.forEach(bubble => bubble.remove());
                 bubblesArray = [];
                 toggleBubblesBtn.textContent = "Enable Bubbles";
@@ -432,10 +794,19 @@
             const deltaTime = timestamp - lastTimestamp;
             lastTimestamp = timestamp;
 
-            // Parallax for ornaments (subtle automatic drift)
+            // Ornaments (only subtle drift, drag/resize is handled by event listeners)
             ornamentsArray.forEach(ornament => {
-                const drift = Math.sin(timestamp * 0.0001) * 5; // Slow sine wave drift
-                ornament.element.style.transform = `translateX(${drift}px)`;
+                 if (!ornament.isDragging) { // Only apply drift if not being dragged
+                    const drift = Math.sin(timestamp * 0.0001) * 5;
+                    // Apply drift by adjusting X coordinate slightly, then re-applying transform
+                    // Note: This approach directly modifies x, then applies transform.
+                    // If using CSS transform for movement, this would be `element.style.transform += translateX(...)`.
+                    // For simplicity with drag, we're keeping `x` and `y` for absolute positioning.
+                    // This drift is more complex when combined with absolute positioning and transforms for drag.
+                    // Let's simplify: only apply a subtle visual wiggle via CSS transform for non-dragging.
+                    // The core position (x,y) should remain absolute for drag.
+                    ornament.element.style.transform = `scale(${ornament.scale}) translateX(${drift}px)`;
+                 }
             });
 
             // Animate fish
@@ -449,6 +820,14 @@
             requestAnimationFrame(animate);
         }
 
+        // --- Global Deselect Listener ---
+        // Click anywhere on aquarium to deselect ornament
+        aquariumContainer.addEventListener('click', (e) => {
+            if (selectedOrnament && !e.target.closest('.ornament-wrapper')) {
+                selectedOrnament.deselect();
+            }
+        });
+
         // --- Event Listeners ---
         addFishBtn.addEventListener('click', addFish);
         removeFishBtn.addEventListener('click', removeFish);
@@ -456,10 +835,19 @@
 
         // --- Initialization ---
         window.onload = () => {
-            // Attempt to play music. User interaction might be needed for autoplay.
             backgroundMusic.play().catch(e => console.log("Autoplay prevented:", e));
 
-            loadInitialOrnaments();
+            generateShopItems(); // Populate the shop
+
+            // Initial ornaments (optional, can start with none)
+            // for(let i = 0; i < 3; i++) {
+            //     if (ornamentImageSources[i]) {
+            //         const newOrnament = new Ornament(ornamentImageSources[i]);
+            //         ornamentsArray.push(newOrnament);
+            //     }
+            // }
+
+
             for (let i = 0; i < 5; i++) { // Start with 5 fish
                 addFish();
             }
@@ -469,16 +857,14 @@
 
         // Resize event to handle fish and bubble repositioning
         const debouncedResize = debounce(() => {
-            // Re-load ornaments to ensure proper scaling and distribution on new viewport size
-            loadInitialOrnaments();
-
-            // Re-initialize fish to adapt their sizes/positions to new viewport
+            // Re-initialize fish and bubbles to adapt their sizes/positions to new viewport
             fishArray.forEach(fish => fish.initPositionAndSize());
-            // Re-initialize bubbles to adapt their positions to new viewport (size is static)
             if (bubblesEnabled) {
                 bubblesArray.forEach(bubble => bubble.initBubble());
             }
-        }, 200); // Debounce to prevent excessive calls during rapid resizing
+            // Ornaments will retain their relative positions but might need scale adjustment
+            ornamentsArray.forEach(ornament => ornament.initPositionAndSize(ornament.x + ornament.element.clientWidth/2, ornament.y + ornament.element.clientHeight/2)); // Recalculate based on current center
+        }, 200);
 
         window.addEventListener('resize', debouncedResize);
 
