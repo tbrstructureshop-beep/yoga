@@ -5,1452 +5,2028 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Premium Virtual Aquarium</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
+        /* === Root Variables & Global Resets === */
         :root {
-            --glass-bg: rgba(255, 255, 255, 0.1);
-            --glass-border: rgba(255, 255, 255, 0.2);
-            --neon-blue: #00eaff;
-            --neon-purple: #ae00ff;
-            --neon-green: #00ff66;
-            --text-color: #e0e0e0;
-            --panel-width-desktop: 300px;
-            --panel-width-mobile: 90%;
+            --glass-bg: rgba(255, 255, 255, 0.15); /* Lighter, more translucent */
+            --glass-border: rgba(255, 255, 255, 0.25);
+            --glass-shadow: rgba(0, 0, 0, 0.15); /* Slightly darker */
+            --glow-color-primary-rgb: 0, 255, 255; /* RGB for dynamic glows */
+            --glow-color-secondary-rgb: 0, 200, 220;
+            --selected-glow: 0 0 10px 5px rgba(var(--glow-color-primary-rgb), 0.7), 0 0 20px 10px rgba(var(--glow-color-primary-rgb), 0.5);
+            --text-color-light: #e0f7fa; /* Light cyan */
+            --text-color-dark: #333;
+            --primary-accent: #00aaff;
+            --secondary-accent: #00bcd4; /* Cyan */
+            --panel-width-desktop: 320px;
+            --panel-width-mobile: 90vw;
+            --padding-base: 15px;
+            --gap-base: 10px;
+            font-size: 16px; /* Base for rem units */
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         body {
+            font-family: 'Montserrat', sans-serif;
             margin: 0;
             overflow: hidden;
-            font-family: 'Share Tech Mono', monospace;
-            color: var(--text-color);
-            background-color: #1a1a2e; /* Dark background behind the aquarium */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            user-select: none;
-            -webkit-user-select: none;
-            -ms-user-select: none;
-            touch-action: none; /* Prevent browser gestures */
-        }
-
-        #aquarium-container {
+            background-color: #0a192f; /* Dark blue background fallback */
             position: relative;
             width: 100vw;
             height: 100vh;
-            max-width: 1920px; /* Example max width */
-            max-height: 1080px; /* Example max height */
-            overflow: hidden;
-            background-color: #001f3f; /* Deep blue water color */
             display: flex;
             justify-content: center;
             align-items: center;
+            cursor: default;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            touch-action: none; /* Prevent browser touch actions */
+            color: var(--text-color-light); /* Default text color for body */
         }
 
-        #background {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background-size: cover;
-            background-position: center;
-            filter: brightness(0.7) blur(1px); /* Subtly dim and blur the background */
-            z-index: 0;
-        }
-
-        #entity-layer {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            z-index: 10; /* Above background, below UI */
-            pointer-events: none; /* Entities will handle their own pointer events */
-        }
-
-        .aquarium-entity {
-            position: absolute;
-            cursor: grab;
-            touch-action: none;
-            will-change: transform, opacity, filter;
-            transition: transform 0.1s ease-out, opacity 0.3s ease-out; /* For smooth dragging and spawn */
-            pointer-events: auto; /* Allow interaction */
-        }
-
-        .aquarium-entity.dragging {
-            cursor: grabbing;
-            filter: drop-shadow(0 0 10px var(--neon-blue));
-            z-index: 1000 !important; /* Bring dragged item to front */
-        }
-
-        .aquarium-entity.fish {
-            transition: transform 0.1s linear, opacity 0.3s ease-out, filter 0.2s ease-out; /* Fish specific transition */
-        }
-
-        .aquarium-entity.spawn-animation {
-            opacity: 0;
-            transform: scale(0.5);
-        }
-
-        .aquarium-entity.spawned {
-            opacity: 1;
-            transform: scale(1);
-        }
-
-        /* Water distortion effect (subtle overlay) */
-        #water-surface-effect {
+        /* === Aquarium Background and Overlay === */
+        .aquarium-background {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
+            background-image: url('background/background1.png'); /* Ensure this path is correct */
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            z-index: -2;
+            filter: brightness(0.8) saturate(1.2) blur(1px); /* Subtle enhancement + blur */
+        }
+
+        .aquarium-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at bottom, rgba(0, 70, 150, 0.3) 0%, rgba(0, 0, 0, 0) 70%),
+                        linear-gradient(to top, rgba(0, 100, 200, 0.15) 0%, rgba(0, 10, 30, 0.3) 100%);
+            z-index: -1;
             pointer-events: none;
-            z-index: 100; /* Above entities, below UI */
-            background: radial-gradient(circle at 50% 0%, rgba(0, 50, 100, 0.2) 0%, rgba(0, 0, 0, 0) 70%);
-            animation: waterFlow 15s linear infinite;
+            animation: subtleWaterDistortion 30s linear infinite; /* Water distortion */
+            background-blend-mode: overlay;
         }
 
-        @keyframes waterFlow {
-            0% { background-position: 0 0; }
-            100% { background-position: 100% 100%; }
+        @keyframes subtleWaterDistortion {
+            0% { background-position: 0% 0%, 0% 0%; }
+            25% { background-position: 10% 5%, 5% 10%; }
+            50% { background-position: 0% 0%, 0% 0%; }
+            75% { background-position: -10% -5%, -5% -10%; }
+            100% { background-position: 0% 0%, 0% 0%; }
         }
 
-        /* UI Panels */
-        .panel {
+        #aquarium-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden; /* Ensure items don't spill */
+        }
+
+        /* === Draggable Items (Fish & Ornaments) === */
+        .draggable-item {
+            position: absolute;
+            will-change: transform, left, top, filter, opacity;
+            touch-action: none;
+            z-index: 1; /* Default, will be overridden */
+            cursor: grab;
+            transition: box-shadow 0.2s ease-out, transform 0.1s ease-out, filter 0.2s ease-out, opacity 0.3s ease-out;
+            pointer-events: auto;
+        }
+
+        .ornament {
+            transform-origin: bottom center; /* Ornaments scale from bottom */
+            z-index: 1;
+        }
+
+        .fish {
+            transform-origin: center center; /* Fish scale from center */
+            z-index: 2;
+        }
+
+        .draggable-item.dragging {
+            cursor: grabbing;
+            z-index: 1000 !important; /* Force to top when dragging */
+            filter: drop-shadow(0 0 15px rgba(var(--glow-color-primary-rgb), 0.8)); /* Enhanced glow for dragging */
+        }
+
+        .draggable-item.selected {
+            box-shadow: var(--selected-glow);
+            z-index: 500 !important; /* Force to top when selected */
+        }
+
+        .draggable-item img {
+            display: block;
+            width: 100%;
+            height: auto;
+            pointer-events: none; /* Crucial: ensures drag events target the wrapper, not the image */
+            filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3)); /* Subtle shadow for depth */
+        }
+
+        .draggable-item.spawn-animation {
+            opacity: 0;
+            transform: scale(0.5) translate(var(--initial-x), var(--initial-y)); /* Initial state for spawn */
+        }
+        .draggable-item.spawn-active {
+            opacity: 1;
+            transform: scale(var(--target-scale)) translate(var(--target-x), var(--target-y));
+        }
+
+        /* === Item Controls (Delete, Resize, Layer) === */
+        .item-controls {
+            position: absolute;
+            top: -45px; /* Position above the item, increased for thumb-friendliness */
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 8px 12px;
+            display: flex;
+            gap: 8px; /* Increased gap */
+            box-shadow: 0 4px 15px var(--glass-shadow);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease-out, transform 0.2s ease-out;
+            z-index: 501; /* Above selected item */
+            white-space: nowrap;
+            touch-action: auto;
+        }
+
+        .draggable-item.selected .item-controls {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateX(-50%) translateY(-5px); /* Subtle lift */
+        }
+
+        .item-controls button,
+        .item-controls input[type="range"] {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: var(--text-color-light); /* Changed to light for glassmorphism */
+            border-radius: 8px; /* Slightly larger radius */
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+            height: 32px; /* Fixed height for consistency */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .item-controls button {
+            padding: 0 10px;
+        }
+        .item-controls button.delete-btn {
+            background: #ff4d4d; /* Red for delete */
+            border-color: #ff1a1a;
+            color: white;
+        }
+        .item-controls button.delete-btn:hover {
+            background: #ff6666;
+            box-shadow: 0 0 10px #ff1a1a;
+        }
+
+        .item-controls button:hover {
+            background: rgba(var(--glow-color-primary-rgb), 0.4);
+            color: white; /* Changed to white */
+            transform: translateY(-2px);
+            box-shadow: 0 0 10px rgba(var(--glow-color-primary-rgb), 0.5);
+        }
+        .item-controls button:active {
+            transform: translateY(0);
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        .item-controls input[type="range"] {
+            width: 90px; /* Slightly wider slider */
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            margin: 0 6px;
+            background: rgba(255, 255, 255, 0.3);
+            outline: none;
+            border-radius: 3px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .item-controls input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px; /* Larger thumb */
+            height: 20px; /* Larger thumb */
+            border-radius: 50%;
+            background: var(--primary-accent);
+            cursor: grab;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+            transition: background 0.2s ease, transform 0.1s ease;
+        }
+        .item-controls input[type="range"]::-webkit-slider-thumb:active {
+            background: var(--secondary-accent);
+            transform: scale(1.1);
+        }
+
+        .item-controls input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary-accent);
+            cursor: grab;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+            transition: background 0.2s ease, transform 0.1s ease;
+        }
+        .item-controls input[type="range"]::-moz-range-thumb:active {
+            background: var(--secondary-accent);
+            transform: scale(1.1);
+        }
+
+        /* === Bubbles === */
+        .bubble {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+            filter: blur(0.7px); /* Slightly more blur for realism */
+            will-change: transform, opacity;
+            animation: bubble-pulse 3s infinite ease-in-out;
+        }
+        @keyframes bubble-pulse {
+            0% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.05); opacity: 0.6; }
+            100% { transform: scale(1); opacity: 0.5; }
+        }
+
+
+        /* === UI Panels - Dashboard & Shop === */
+        .ui-panel {
             position: absolute;
             background: var(--glass-bg);
-            backdrop-filter: blur(15px);
+            backdrop-filter: blur(15px); /* Stronger blur */
+            -webkit-backdrop-filter: blur(15px);
             border: 1px solid var(--glass-border);
-            border-radius: 15px;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-            padding: 20px;
+            border-radius: 20px; /* More rounded */
+            padding: var(--padding-base);
+            box-shadow: 0 8px 30px var(--glass-shadow);
+            z-index: 100; /* Higher z-index for UI */
+            user-select: none;
             display: flex;
             flex-direction: column;
-            gap: 15px;
-            z-index: 200;
+            gap: var(--gap-base);
+            color: var(--text-color-light);
             transition: transform 0.3s ease-out, opacity 0.3s ease-out;
         }
 
+        /* Dashboard (Controls) Panel */
+        #dashboard-panel {
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            flex-direction: row; /* Horizontal layout for desktop dashboard */
+            align-items: center;
+            justify-content: center;
+            padding: 12px 25px; /* More horizontal padding */
+        }
+        #dashboard-panel.hidden {
+            transform: translateX(-50%) translateY(100px);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #dashboard-panel .panel-group {
+            display: flex;
+            gap: 15px; /* More space between groups of buttons */
+            margin: 0 10px;
+        }
+        #dashboard-panel button {
+            background: rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: var(--text-color-light); /* Changed to light for glassmorphism */
+            padding: 12px 20px; /* Larger buttons */
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: 700;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(8px);
+            touch-action: manipulation;
+            min-width: 120px; /* Ensure minimum width */
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            display: flex; /* For icon + text alignment */
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        #dashboard-panel button span.icon {
+            font-size: 1.2em; /* Larger icons */
+        }
+
+        #dashboard-panel button:hover {
+            background: rgba(var(--glow-color-secondary-rgb), 0.5);
+            box-shadow: 0 0 15px rgba(var(--glow-color-secondary-rgb), 0.7); /* Neon glow */
+            transform: translateY(-3px); /* More pronounced lift */
+            color: white; /* Ensure text is white on hover */
+        }
+        #dashboard-panel button:active {
+            transform: translateY(0);
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        /* Shop Panel */
         #shop-panel {
-            right: -100%; /* Off-screen by default */
-            top: 50%;
-            transform: translateY(-50%) translateX(0);
-            width: var(--panel-width-desktop);
-            height: 80vh;
-            max-height: 700px;
-            padding: 0; /* Content will have padding */
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-
-        #shop-panel.open {
-            right: 20px;
-            transform: translateY(-50%) translateX(0);
-        }
-
-        #controls-panel {
-            left: 20px;
             top: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+            right: 20px;
+            width: var(--panel-width-desktop);
+            max-height: calc(100vh - 40px);
+            transform: translateX(0); /* Default position */
+            overflow: hidden; /* For inner scrolling */
+        }
+        #shop-panel.hidden {
+            transform: translateX(calc(var(--panel-width-desktop) + 20px)); /* Slide out */
+            opacity: 0;
+            pointer-events: none;
+        }
+        #shop-panel.visible {
+            transform: translateX(0); /* Slide in */
+            opacity: 1;
+            pointer-events: auto;
         }
 
-        /* Shop specific styles */
+        #shop-panel h3 {
+            margin: 0 0 var(--gap-base) 0;
+            color: var(--text-color-light);
+            font-family: 'Orbitron', sans-serif; /* Modern font for titles */
+            font-size: 1.3em;
+            text-align: center;
+            font-weight: 700;
+            padding-bottom: var(--gap-base);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
         .shop-tabs {
             display: flex;
-            width: 100%;
-            border-bottom: 1px solid var(--glass-border);
-            padding-bottom: 5px;
+            justify-content: center;
+            margin-bottom: var(--gap-base);
+            gap: 5px;
         }
-
-        .shop-tab-button {
-            flex: 1;
-            padding: 15px 10px;
+        .shop-tabs button {
+            flex-grow: 1;
+            padding: 8px 15px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--text-color-light);
+            font-weight: 600;
             cursor: pointer;
-            background: none;
-            border: none;
-            color: var(--text-color);
-            font-family: 'Orbitron', sans-serif;
-            font-size: 1.1em;
-            transition: background-color 0.2s ease, color 0.2s ease, text-shadow 0.2s ease;
-            text-align: center;
+            transition: all 0.2s ease;
+            font-family: 'Montserrat', sans-serif;
         }
-
-        .shop-tab-button:hover {
-            color: var(--neon-blue);
-            text-shadow: 0 0 5px var(--neon-blue);
+        .shop-tabs button.active,
+        .shop-tabs button:hover {
+            background: var(--primary-accent);
+            border-color: var(--primary-accent);
+            color: white;
+            box-shadow: 0 0 12px rgba(0, 170, 255, 0.7); /* Neon glow */
+            transform: translateY(-2px);
         }
-
-        .shop-tab-button.active {
-            background-color: var(--glass-bg);
-            border-bottom: 2px solid var(--neon-blue);
-            color: var(--neon-blue);
-            text-shadow: 0 0 8px var(--neon-blue);
+        .shop-tabs button:active {
+            transform: translateY(0);
+            box-shadow: none;
         }
 
         .shop-content {
             flex-grow: 1;
-            padding: 20px;
-            overflow-y: auto;
-            display: none;
+            overflow-y: auto; /* Scrollable content area */
+            padding-right: 5px; /* Prevent scrollbar from overlapping content */
+            margin-right: -5px; /* Adjust for padding */
         }
 
-        .shop-content.active {
-            display: block;
-        }
-
-        .shop-item-grid {
+        .shop-items-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); /* Larger items */
+            gap: var(--gap-base);
+            justify-items: center;
+            align-items: center;
+            padding-bottom: 10px;
         }
 
         .shop-item {
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid var(--glass-border);
-            border-radius: 10px;
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            width: 90px; /* Slightly larger thumbnail size */
+            height: 90px;
+            border: 2px solid transparent;
+            border-radius: 12px;
+            overflow: hidden;
             cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            transition: all 0.2s ease;
+            background-color: rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            touch-action: manipulation;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             position: relative; /* For hover preview */
         }
 
         .shop-item:hover {
-            transform: translateY(-5px) scale(1.03);
-            box-shadow: 0 0 15px var(--neon-green);
-            border-color: var(--neon-green);
+            border-color: var(--primary-accent);
+            box-shadow: 0 0 10px rgba(var(--glow-color-primary-rgb), 0.6);
+            transform: translateY(-3px) scale(1.05);
         }
 
         .shop-item img {
-            max-width: 80px;
-            max-height: 80px;
+            max-width: 90%;
+            max-height: 90%;
             object-fit: contain;
-            pointer-events: none; /* Prevent dragging the image itself */
+            display: block;
+            pointer-events: none;
+            filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3)); /* Subtle shadow for depth */
+        }
+        .shop-item:hover .shop-item-preview {
+            opacity: 1;
+            transform: translateY(-10px) scale(1.1); /* Lift and enlarge */
         }
 
-        .shop-item span {
-            margin-top: 8px;
-            font-size: 0.9em;
-            text-align: center;
-            color: var(--text-color);
-        }
-
-        /* Modal */
-        .modal-overlay {
+        .shop-item-preview {
             position: absolute;
+            bottom: calc(100% + 10px); /* Above the item */
+            left: 50%;
+            transform: translateX(-50%) scale(0.8);
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            padding: 8px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            z-index: 10; /* Ensure it's above other shop items */
+            width: 120px; /* Consistent preview size */
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .shop-item-preview img {
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+
+        /* --- Item Preview & Quantity Modal --- */
+        .item-preview-modal {
+            position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(8px);
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 300;
+            z-index: 200;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.3s ease-out;
+            transition: opacity 0.3s ease;
         }
-
-        .modal-overlay.active {
+        .item-preview-modal.visible {
             opacity: 1;
             pointer-events: auto;
         }
 
         .modal-content {
             background: var(--glass-bg);
+            backdrop-filter: blur(20px);
             border: 1px solid var(--glass-border);
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 0 50px rgba(0, 255, 255, 0.5); /* Neon glow for modal */
+            border-radius: 20px;
+            padding: var(--padding-base) calc(var(--padding-base) * 1.5);
+            box-shadow: 0 10px 40px var(--glass-shadow);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--gap-base);
+            max-width: 90vw;
+            max-height: 90vh;
             text-align: center;
-            min-width: 300px;
-            transform: translateY(-20px) scale(0.9);
+            position: relative;
+            transform: translateY(20px) scale(0.95);
             opacity: 0;
             transition: transform 0.3s ease-out, opacity 0.3s ease-out;
         }
-
-        .modal-overlay.active .modal-content {
+        .item-preview-modal.visible .modal-content {
             transform: translateY(0) scale(1);
             opacity: 1;
         }
 
-        .modal-content h3 {
-            margin-top: 0;
-            color: var(--neon-blue);
-            font-family: 'Orbitron', sans-serif;
-            font-size: 1.4em;
+        .modal-close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            color: var(--text-color-light);
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+        .modal-close-btn:hover {
+            color: var(--primary-accent);
         }
 
-        .modal-content input {
-            width: 80px;
-            padding: 10px;
-            margin: 20px 0;
-            border: 1px solid var(--neon-blue);
-            border-radius: 8px;
-            background-color: rgba(0, 0, 0, 0.3);
-            color: var(--neon-green);
-            font-size: 1.2em;
-            text-align: center;
-            -moz-appearance: textfield; /* Hide arrows for Firefox */
+        .modal-item-preview-img {
+            max-width: 150px;
+            max-height: 150px;
+            object-fit: contain;
+            margin-bottom: var(--gap-base);
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
         }
-        .modal-content input::-webkit-outer-spin-button,
-        .modal-content input::-webkit-inner-spin-button {
+
+        .modal-title {
+            font-size: 1.6em;
+            font-weight: 700;
+            color: var(--text-color-light);
+            margin-bottom: 5px;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .modal-quantity-controls {
+            display: flex;
+            align-items: center;
+            gap: var(--gap-base);
+            margin: var(--gap-base) 0;
+        }
+        .modal-quantity-controls button {
+            background: var(--primary-accent);
+            border: none;
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5em;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.1s ease;
+        }
+        .modal-quantity-controls button:hover {
+            background: var(--secondary-accent);
+            transform: scale(1.1);
+        }
+        .modal-quantity-controls button:active {
+            transform: scale(1);
+        }
+        .modal-quantity-input {
+            width: 60px;
+            padding: 8px;
+            border-radius: 8px;
+            border: 1px solid var(--glass-border);
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-color-light);
+            text-align: center;
+            font-size: 1.1em;
+            -moz-appearance: textfield; /* Hide arrows in Firefox */
+            appearance: textfield;
+        }
+        .modal-quantity-input::-webkit-outer-spin-button,
+        .modal-quantity-input::-webkit-inner-spin-button {
             -webkit-appearance: none;
             margin: 0;
         }
 
 
-        .modal-actions {
-            display: flex;
-            justify-content: space-around;
-            gap: 15px;
-        }
-
-        /* Buttons */
-        .btn {
-            background: linear-gradient(45deg, var(--neon-blue), var(--neon-purple));
-            color: white;
+        .modal-add-btn {
+            background: var(--primary-accent);
             border: none;
-            padding: 12px 25px;
-            border-radius: 30px;
+            border-radius: 12px;
+            padding: 12px 30px;
+            color: white;
+            font-size: 1.1em;
+            font-weight: 700;
             cursor: pointer;
-            font-family: 'Orbitron', sans-serif;
-            font-size: 1em;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
-            transition: all 0.2s ease;
-            position: relative;
-            overflow: hidden;
-            touch-action: manipulation; /* For better mobile feedback */
+            transition: background 0.2s ease, transform 0.2s ease;
+            box-shadow: 0 4px 15px rgba(0, 170, 255, 0.4); /* Neon glow */
         }
-
-        .btn:hover {
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.8), 0 0 40px rgba(174, 0, 255, 0.4);
-            transform: translateY(-2px);
+        .modal-add-btn:hover {
+            background: var(--secondary-accent);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 170, 255, 0.6);
         }
-
-        .btn:active {
+        .modal-add-btn:active {
             transform: translateY(0);
-            box-shadow: 0 0 5px rgba(0, 255, 255, 0.3);
-        }
-
-        .btn.primary {
-            background: linear-gradient(45deg, var(--neon-green), #00aaff);
-            box-shadow: 0 0 10px rgba(0, 255, 102, 0.5);
-        }
-
-        .btn.primary:hover {
-            box-shadow: 0 0 20px rgba(0, 255, 102, 0.8), 0 0 40px rgba(0, 170, 255, 0.4);
-        }
-
-        .btn.secondary {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid var(--neon-blue);
             box-shadow: none;
         }
 
-        .btn.secondary:hover {
-            background: rgba(255, 255, 255, 0.2);
-            box-shadow: 0 0 10px var(--neon-blue);
-        }
-
-        .control-btn {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid var(--glass-border);
-            color: var(--text-color);
-            padding: 10px 15px;
-            border-radius: 10px;
-            font-size: 0.9em;
-            cursor: pointer;
-            transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        /* Toggle Shop Button */
+        #toggleShopBtn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--primary-accent);
+            color: white;
+            font-size: 1.8em;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 5px;
-            font-family: 'Share Tech Mono', monospace;
+            cursor: pointer;
+            z-index: 150; /* Above other UI elements */
+            box-shadow: 0 4px 15px rgba(0, 170, 255, 0.4);
+            transition: all 0.3s ease;
+            border: none;
+            display: none; /* Hidden by default, shown by JS when shop is hidden */
+        }
+        #toggleShopBtn:hover {
+            transform: scale(1.1) rotate(15deg);
+            background: var(--secondary-accent);
         }
 
-        .control-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-            border-color: var(--neon-blue);
-            box-shadow: 0 0 8px var(--neon-blue);
-        }
-
-        .control-btn.active {
-            background: var(--neon-blue);
-            color: white;
-            box-shadow: 0 0 15px var(--neon-blue);
-        }
-
-        /* Toast Notifications */
-        #toast-container {
-            position: absolute;
-            bottom: 20px;
+        /* --- Toast Notifications (for feedback) --- */
+        .toast-container {
+            position: fixed;
+            bottom: 120px; /* Above dashboard */
             left: 50%;
             transform: translateX(-50%);
             display: flex;
             flex-direction: column;
+            align-items: center;
             gap: 10px;
-            z-index: 400;
+            z-index: 200;
             pointer-events: none;
         }
-
         .toast {
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--glass-border);
-            border-radius: 8px;
-            padding: 12px 20px;
-            color: var(--text-color);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
             font-size: 0.9em;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
             opacity: 0;
             transform: translateY(20px);
-            transition: opacity 0.3s ease-out, transform 0.3s ease-out;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: opacity 0.3s ease, transform 0.3s ease;
         }
-
         .toast.show {
             opacity: 1;
             transform: translateY(0);
         }
+        .toast.success { border-left: 5px solid #00ffaa; }
+        .toast.error { border-left: 5px solid #ff0077; }
+        .toast.info { border-left: 5px solid #00aaff; }
 
-        .toast.success { border-left: 5px solid var(--neon-green); }
-        .toast.error { border-left: 5px solid var(--neon-purple); }
-        .toast.info { border-left: 5px solid var(--neon-blue); }
 
-
-        /* Bubble Particle System */
-        #bubble-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            overflow: hidden;
-            z-index: 10; /* Same layer as entities */
-        }
-
-        .bubble {
-            position: absolute;
-            background-color: rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            opacity: 0;
-            animation: bubbleRise linear infinite;
-        }
-
-        @keyframes bubbleRise {
-            0% {
-                transform: translateY(0) translateX(0) scale(0);
-                opacity: 0;
+        /* === Responsive Adjustments === */
+        @media (max-width: 1024px) {
+            :root {
+                font-size: 15px;
             }
-            10% {
-                opacity: 1;
-                transform: translateY(-10%) translateX(var(--bubble-drift)) scale(var(--bubble-scale));
+            #dashboard-panel button {
+                padding: 10px 15px;
+                font-size: 0.9em;
+                min-width: 100px;
             }
-            80% {
-                opacity: 0.8;
+            #dashboard-panel .panel-group {
+                gap: 10px;
             }
-            100% {
-                transform: translateY(-100vh) translateX(var(--bubble-drift)) scale(var(--bubble-scale));
-                opacity: 0;
+            .item-controls {
+                top: -40px;
+                padding: 6px 10px;
+                gap: 6px;
+                border-radius: 10px;
+            }
+            .item-controls button {
+                padding: 0 8px;
+                height: 28px;
+                font-size: 0.8em;
+            }
+            .item-controls input[type="range"] {
+                width: 70px;
+            }
+            .item-controls input[type="range"]::-webkit-slider-thumb,
+            .item-controls input[type="range"]::-moz-range-thumb {
+                width: 18px;
+                height: 18px;
             }
         }
 
-        /* Item controls (resize/delete) */
-        .item-controls {
-            position: absolute;
-            bottom: -30px; /* Position below the entity */
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 5px;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s ease;
-        }
-
-        .aquarium-entity.selected .item-controls {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .control-icon {
-            background-color: var(--neon-blue);
-            color: white;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 1.2em;
-            cursor: pointer;
-            box-shadow: 0 0 8px rgba(0, 255, 255, 0.7);
-            transition: transform 0.1s ease, background-color 0.1s ease, box-shadow 0.1s ease;
-        }
-
-        .control-icon:hover {
-            transform: scale(1.1);
-            background-color: var(--neon-green);
-            box-shadow: 0 0 12px rgba(0, 255, 102, 0.9);
-        }
-
-        /* Responsive Design */
         @media (max-width: 768px) {
-            #shop-panel {
-                width: var(--panel-width-mobile);
-                right: -100%;
-                top: 50%; /* Center vertically */
-                left: unset;
-                transform: translateY(-50%) translateX(0);
-                height: 90vh;
+            :root {
+                font-size: 14px;
             }
 
-            #shop-panel.open {
-                right: 5%; /* A bit of margin */
-                transform: translateY(-50%) translateX(0);
+            #dashboard-panel {
+                bottom: 15px;
+                left: 10px;
+                right: 10px;
+                width: auto;
+                transform: translateX(0); /* No horizontal transform on mobile */
+                flex-direction: column; /* Vertical layout for mobile dashboard */
+                padding: 15px;
+                gap: var(--gap-base);
+                border-radius: 15px;
             }
-
-            #controls-panel {
-                left: 50%;
-                transform: translateX(-50%);
-                top: 10px;
-                flex-direction: row; /* Buttons in a row */
-                width: calc(100% - 20px);
+            #dashboard-panel.hidden {
+                transform: translateY(100%);
+            }
+            #dashboard-panel .panel-group {
+                flex-direction: row;
+                flex-wrap: wrap; /* Allow buttons to wrap */
                 justify-content: center;
-                gap: 5px;
-                flex-wrap: wrap;
+                gap: 8px;
+                margin: 0;
+            }
+            #dashboard-panel button {
+                flex: 1 1 auto; /* Allow buttons to grow/shrink */
+                min-width: unset;
+                max-width: 48%; /* Two buttons per row */
+                font-size: 0.85em;
                 padding: 10px;
             }
 
-            .control-btn {
-                padding: 8px 12px;
-                font-size: 0.8em;
+            #shop-panel {
+                top: 10px;
+                right: 10px;
+                width: var(--panel-width-mobile);
+                padding: var(--padding-base);
+                border-radius: 15px;
+                transform: translateX(calc(var(--panel-width-mobile) + 10px)); /* Start hidden */
+            }
+            #shop-panel.hidden {
+                transform: translateX(calc(var(--panel-width-mobile) + 10px));
+            }
+            #shop-panel.visible {
+                transform: translateX(0);
             }
 
-            .shop-item-grid {
-                grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-                gap: 10px;
+            #toggleShopBtn {
+                display: flex; /* Show toggle button on mobile */
             }
 
-            .shop-item img {
-                max-width: 60px;
-                max-height: 60px;
+            .shop-items-grid {
+                grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+                gap: 8px;
+            }
+            .shop-item {
+                width: 80px;
+                height: 80px;
+                border-radius: 8px;
             }
 
             .modal-content {
-                width: 90%;
-                min-width: unset;
-                padding: 20px;
+                padding: var(--padding-base);
+            }
+            .modal-title {
+                font-size: 1.4em;
+            }
+            .modal-item-preview-img {
+                max-width: 120px;
+                max-height: 120px;
+            }
+            .modal-add-btn {
+                padding: 10px 25px;
+                font-size: 1em;
+            }
+            .toast-container {
+                bottom: calc(15px + 100px); /* Adjust based on new dashboard height */
+            }
+        }
+
+        @media (max-width: 480px) {
+            #dashboard-panel button {
+                max-width: 100%; /* Stack buttons vertically on very small screens */
+            }
+            #dashboard-panel .panel-group {
+                 flex-direction: column;
+                 width: 100%;
             }
         }
     </style>
 </head>
 <body>
+
+    <div class="aquarium-background"></div>
+    <div class="aquarium-overlay"></div>
+
     <div id="aquarium-container">
-        <div id="background"></div>
-        <div id="entity-layer"></div>
-        <div id="bubble-container"></div>
-        <div id="water-surface-effect"></div>
-
-        <div id="controls-panel" class="panel">
-            <button id="shop-toggle-btn" class="control-btn"><span class="icon">🛍️</span> Shop</button>
-            <button id="save-btn" class="control-btn"><span class="icon">💾</span> Save</button>
-            <button id="load-btn" class="control-btn"><span class="icon">📂</span> Load</button>
-            <button id="music-toggle-btn" class="control-btn active"><span class="icon">🎵</span> Music ON</button>
-            <button id="reset-btn" class="control-btn secondary"><span class="icon">❌</span> Reset</button>
-        </div>
-
-        <div id="shop-panel" class="panel">
-            <div class="shop-tabs">
-                <button class="shop-tab-button active" data-tab="fish">Fish</button>
-                <button class="shop-tab-button" data-tab="ornaments">Ornaments</button>
-                <button id="shop-close-btn" class="control-btn" style="position: absolute; right: 10px; top: 10px; width: 30px; height: 30px; border-radius: 50%; padding: 0; font-size: 1.5em; line-height: 1; background: rgba(255,255,255,0.05);">✖</button>
-            </div>
-            <div id="fish-shop-content" class="shop-content active">
-                <div class="shop-item-grid">
-                    <!-- Fish items will be dynamically loaded here -->
-                </div>
-            </div>
-            <div id="ornaments-shop-content" class="shop-content">
-                <div class="shop-item-grid">
-                    <!-- Ornament items will be dynamically loaded here -->
-                </div>
-            </div>
-        </div>
-
-        <div id="quantity-modal" class="modal-overlay">
-            <div class="modal-content">
-                <h3 id="modal-item-name">Add Item</h3>
-                <input type="number" id="quantity-input" value="1" min="1" max="99">
-                <div class="modal-actions">
-                    <button id="confirm-quantity-btn" class="btn primary">Add</button>
-                    <button id="cancel-quantity-btn" class="btn secondary">Cancel</button>
-                </div>
-            </div>
-        </div>
-
-        <div id="toast-container"></div>
+        <!-- Draggable items (ornaments, fish) and bubbles will be injected here by JS -->
     </div>
 
-    <audio id="background-music" loop preload="auto">
-        <source src="838fc208-2aa9-407e-ae4a-f7178acb7e65.mp3" type="audio/mpeg">
-        Your browser does not support the audio element.
-    </audio>
+    <!-- UI Dashboard Panel -->
+    <div id="dashboard-panel" class="ui-panel">
+        <div class="panel-group">
+            <button id="playMusicBtn" title="Toggle Background Music"><span class="icon">🎵</span> Music</button>
+            <button id="toggleBubblesBtn" title="Toggle Bubbles"><span class="icon">🫧</span> Bubbles</button>
+        </div>
+        <div class="panel-group">
+            <button id="saveStateBtn" title="Save Aquarium Layout"><span class="icon">💾</span> Save</button>
+            <button id="loadStateBtn" title="Load Aquarium Layout"><span class="icon">📂</span> Load</button>
+        </div>
+        <div class="panel-group">
+            <button id="resetAquariumBtn" title="Reset Aquarium (Delete All Items)" style="background: rgba(255, 0, 0, 0.3); border-color: rgba(255, 0, 0, 0.5);"><span class="icon">🗑️</span> Reset</button>
+        </div>
+    </div>
+
+    <!-- UI Shop Panel -->
+    <div id="shop-panel" class="ui-panel">
+        <h3>Aquarium Shop</h3>
+        <div class="shop-tabs">
+            <button id="tabFish" class="active">Fish</button>
+            <button id="tabOrnaments">Ornaments</button>
+        </div>
+        <div class="shop-content">
+            <div id="fishShopItems" class="shop-items-grid active">
+                <!-- Fish shop items will be generated here by JS -->
+            </div>
+            <div id="ornamentShopItems" class="shop-items-grid hidden">
+                <!-- Ornament shop items will be generated here by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toggle Shop Button (Mobile Only) -->
+    <button id="toggleShopBtn">🛒</button>
+
+    <!-- Item Preview and Quantity Modal -->
+    <div id="itemPreviewModal" class="item-preview-modal">
+        <div class="modal-content">
+            <button class="modal-close-btn">&times;</button>
+            <h4 class="modal-title">Add <span id="modalItemName"></span></h4>
+            <img id="modalItemPreview" class="modal-item-preview-img" alt="Item preview">
+
+            <div class="modal-quantity-controls">
+                <button id="quantityMinus">-</button>
+                <input type="number" id="modalQuantityInput" class="modal-quantity-input" value="1" min="1" max="10">
+                <button id="quantityPlus">+</button>
+            </div>
+            <button id="modalAddBtn" class="modal-add-btn">Add to Aquarium</button>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Looped background music -->
+    <audio id="backgroundMusic" src="838fc208-2aa9-407e-ae4a-f7178acb7e65.mp3" loop></audio>
 
     <script>
-        // CORE CONFIGURATION
+        // --- Core Configuration (Updated with more properties for game logic) ---
         const ASSET_CONFIG = {
-            backgrounds: [
-                { id: 'bg1', path: 'background/background1.png', name: 'Coral Reef' }
-            ],
-            fishes: [
-                { id: 'fish1', path: 'fish/fish1.png', name: 'Clownfish', width: 80, height: 60, minScale: 0.8, maxScale: 1.2, speed: {min: 0.5, max: 2} },
-                { id: 'fish2', path: 'fish/fish2.png', name: 'Blue Tang', width: 90, height: 70, minScale: 0.7, maxScale: 1.1, speed: {min: 0.7, max: 2.5} },
-                { id: 'fish3', path: 'fish/fish3.png', name: 'Angelfish', width: 100, height: 80, minScale: 0.9, maxScale: 1.3, speed: {min: 0.4, max: 1.8} }
+            fish: [
+                { id: 'fish1', src: 'fish/fish1.png', name: 'Clownfish', baseWidth: 80, baseHeight: 60, speed: { min: 0.5, max: 2.5 }, scaleRange: [0.7, 1.3], depthEffect: true, rotation: 10 },
+                { id: 'fish2', src: 'fish/fish2.png', name: 'Blue Tang', baseWidth: 90, baseHeight: 70, speed: { min: 0.7, max: 3.0 }, scaleRange: [0.6, 1.2], depthEffect: true, rotation: 8 },
+                { id: 'fish3', src: 'fish/fish3.png', name: 'Angelfish', baseWidth: 100, baseHeight: 80, speed: { min: 0.4, max: 2.0 }, scaleRange: [0.8, 1.4], depthEffect: true, rotation: 12 }
             ],
             ornaments: [
-                { id: 'ornament1', path: 'ornamen/ornamen1.png', name: 'Coral Branch', width: 120, height: 100, isFixed: true, minScale: 1, maxScale: 1.5 },
-                { id: 'ornament2', path: 'ornamen/ornamen2.png', name: 'Seaweed', width: 80, height: 150, isFixed: true, minScale: 0.8, maxScale: 1.2 },
-                { id: 'ornament3', path: 'ornamen/ornamen3.png', name: 'Treasure Chest', width: 100, height: 80, isFixed: true, minScale: 0.9, maxScale: 1.1 }
-            ]
+                { id: 'ornament1', src: 'ornamen/ornamen1.png', name: 'Coral Branch', baseWidth: 120, baseHeight: 100, scaleRange: [0.8, 1.5], isFixed: true },
+                { id: 'ornament2', src: 'ornamen/ornamen2.png', name: 'Seaweed', baseWidth: 80, baseHeight: 150, scaleRange: [0.7, 1.2], isFixed: true },
+                { id: 'ornament3', src: 'ornamen/ornamen3.png', name: 'Treasure Chest', baseWidth: 100, baseHeight: 80, scaleRange: [0.9, 1.1], isFixed: true },
+                { id: 'ornament4', src: 'ornamen/ornamen4.png', name: 'Volcano', baseWidth: 150, baseHeight: 120, scaleRange: [1.0, 1.8], isFixed: true }
+            ],
+            background: 'background/background1.png', // Main background
+            music: '838fc208-2aa9-407e-ae4a-f7178acb7e65.mp3' // Background music
         };
+
+        const GAME_SETTINGS = {
+            MAX_FISH: 15,
+            MAX_ORNAMENTS: 25,
+            FISH_IDLE_DURATION: [1000, 3000], // ms
+            FISH_VERTICAL_AMPLITUDE: [20, 50], // px
+            FISH_VERTICAL_FREQUENCY: [0.0005, 0.0015], // for sine wave in pixels per ms
+            FISH_DEPTH_BLUR_MAX: 3, // Max blur in px
+            FISH_DEPTH_SCALE_RANGE: [0.7, 1.2], // How much depth affects fish size
+            ITEM_BOUNDARY_PADDING: 20, // px from edge
+            SPAWN_ANIMATION_DURATION: 300, // ms
+            PERSISTENCE_VERSION: '1.0.1' // For managing save data changes
+        };
+
+        // --- DOM References ---
+        // Grouped for cleaner access
+        const DOM = {
+            aquariumContainer: document.getElementById('aquarium-container'),
+            dashboardPanel: document.getElementById('dashboard-panel'),
+            shopPanel: document.getElementById('shop-panel'),
+            toggleShopBtn: document.getElementById('toggleShopBtn'),
+            playMusicBtn: document.getElementById('playMusicBtn'),
+            toggleBubblesBtn: document.getElementById('toggleBubblesBtn'),
+            saveStateBtn: document.getElementById('saveStateBtn'),
+            loadStateBtn: document.getElementById('loadStateBtn'),
+            resetAquariumBtn: document.getElementById('resetAquariumBtn'), // New reset button
+            fishShopItemsDiv: document.getElementById('fishShopItems'),
+            ornamentShopItemsDiv: document.getElementById('ornamentShopItems'),
+            tabFish: document.getElementById('tabFish'),
+            tabOrnaments: document.getElementById('tabOrnaments'),
+            backgroundMusic: document.getElementById('backgroundMusic'),
+            itemPreviewModal: document.getElementById('itemPreviewModal'),
+            modalCloseBtn: document.querySelector('#itemPreviewModal .modal-close-btn'),
+            modalItemName: document.getElementById('modalItemName'),
+            modalItemPreview: document.getElementById('modalItemPreview'),
+            quantityMinusBtn: document.getElementById('quantityMinus'),
+            quantityPlusBtn: document.getElementById('quantityPlus'),
+            modalQuantityInput: document.getElementById('modalQuantityInput'),
+            modalAddBtn: document.getElementById('modalAddBtn'),
+            toastContainer: document.getElementById('toastContainer'),
+            aquariumBackground: document.querySelector('.aquarium-background')
+        };
+
+        // --- Global State (minimized) ---
+        let currentGameState = {
+            isMusicPlaying: false,
+            bubblesEnabled: true,
+            selectedItem: null, // Currently selected DraggableItem instance
+            currentShopTab: 'fish', // 'fish' or 'ornaments'
+            modalSelectedItem: null, // The asset object from ASSET_CONFIG for the item in modal
+            animationFrameId: null, // For requestAnimationFrame management
+            itemsToSpawn: [] // Queue for items to be spawned with animation
+        };
+
+        // --- Utility Functions ---
+        const Utils = (() => {
+            function getRandom(min, max) {
+                return Math.random() * (max - min) + min;
+            }
+
+            function debounce(func, delay) {
+                let timeout;
+                return function(...args) {
+                    const context = this;
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => func.apply(context, args), delay);
+                };
+            }
+
+            return { getRandom, debounce };
+        })();
 
         // --- Module: AssetManager ---
         // Handles loading and providing asset data.
         const AssetManager = (() => {
-            const assets = {};
+            const assetsCache = new Map();
 
-            const loadAsset = (type, item) => {
+            async function loadImage(src) {
+                if (assetsCache.has(src)) {
+                    return assetsCache.get(src);
+                }
                 return new Promise((resolve, reject) => {
                     const img = new Image();
                     img.onload = () => {
-                        assets[item.id] = { ...item, img };
+                        assetsCache.set(src, img);
                         resolve(img);
                     };
                     img.onerror = () => {
-                        console.error(`Failed to load ${type} asset: ${item.path}`);
-                        reject(new Error(`Failed to load ${type} asset: ${item.path}`));
+                        console.error(`Failed to load image: ${src}`);
+                        reject(new Error(`Failed to load image: ${src}`));
                     };
-                    img.src = item.path;
+                    img.src = src;
                 });
-            };
-
-            const loadAllAssets = async () => {
-                const loadPromises = [];
-                Object.values(ASSET_CONFIG.backgrounds).forEach(bg => loadPromises.push(loadAsset('background', bg)));
-                Object.values(ASSET_CONFIG.fishes).forEach(fish => loadPromises.push(loadAsset('fish', fish)));
-                Object.values(ASSET_CONFIG.ornaments).forEach(ornament => loadPromises.push(loadAsset('ornament', ornament)));
-                return Promise.all(loadPromises);
-            };
-
-            const getAsset = (id) => assets[id];
-            const getAssetsByType = (type) => ASSET_CONFIG[type].map(item => assets[item.id]);
-
-            return {
-                loadAllAssets,
-                getAsset,
-                getAssetsByType
-            };
-        })();
-
-        // --- Module: EntityManager ---
-        // Manages all active entities (fish, ornaments) in the aquarium.
-        const EntityManager = (() => {
-            let entities = [];
-            let nextEntityId = 1;
-            const entityLayer = document.getElementById('entity-layer');
-            let selectedEntity = null;
-
-            const createEntity = (assetId, x, y, scale = 1, zIndex = 10) => {
-                const asset = AssetManager.getAsset(assetId);
-                if (!asset) {
-                    console.error(`Asset not found for ID: ${assetId}`);
-                    return null;
-                }
-
-                const entityDiv = document.createElement('div');
-                entityDiv.className = `aquarium-entity ${asset.isFixed ? 'ornament' : 'fish'} spawn-animation`;
-                entityDiv.style.width = `${asset.width * scale}px`;
-                entityDiv.style.height = `${asset.height * scale}px`;
-                entityDiv.style.backgroundImage = `url(${asset.path})`;
-                entityDiv.style.backgroundSize = 'contain';
-                entityDiv.style.backgroundRepeat = 'no-repeat';
-                entityDiv.style.backgroundPosition = 'center';
-                entityDiv.style.left = `${x}px`;
-                entityDiv.style.top = `${y}px`;
-                entityDiv.style.zIndex = zIndex;
-                entityDiv.dataset.id = nextEntityId++;
-                entityDiv.dataset.assetId = assetId;
-                entityDiv.dataset.scale = scale;
-                entityDiv.dataset.zIndex = zIndex; // Store z-index for persistence
-
-                // Add item controls
-                const controlsDiv = document.createElement('div');
-                controlsDiv.className = 'item-controls';
-                controlsDiv.innerHTML = `
-                    <div class="control-icon resize-handle" data-action="resize">+</div>
-                    <div class="control-icon delete-btn" data-action="delete">🗑️</div>
-                `;
-                entityDiv.appendChild(controlsDiv);
-
-
-                entityLayer.appendChild(entityDiv);
-
-                // Add spawn animation
-                setTimeout(() => {
-                    entityDiv.classList.remove('spawn-animation');
-                    entityDiv.classList.add('spawned');
-                }, 50); // Small delay to allow CSS transition
-
-                const entity = {
-                    id: parseInt(entityDiv.dataset.id),
-                    assetId: assetId,
-                    element: entityDiv,
-                    x: x,
-                    y: y,
-                    scale: scale,
-                    zIndex: zIndex,
-                    isFish: !asset.isFixed,
-                    data: { ...asset } // Store asset data directly
-                };
-
-                if (entity.isFish) {
-                    entity.direction = Math.random() < 0.5 ? 1 : -1; // 1 for right, -1 for left
-                    entity.speed = asset.speed.min + Math.random() * (asset.speed.max - asset.speed.min);
-                    entity.amplitude = Math.random() * 20 + 10; // Sine wave amplitude
-                    entity.frequency = Math.random() * 0.05 + 0.02; // Sine wave frequency
-                    entity.offsetY = y; // Base Y for sine wave
-                    entity.idleTimer = 0;
-                    entity.maxIdleTime = Math.random() * 500 + 200; // Frames to idle
-                    entity.isIdling = false;
-                    entity.tilt = 0; // For slight rotation
-                }
-                entities.push(entity);
-                return entity;
-            };
-
-            const removeEntity = (id) => {
-                const index = entities.findIndex(e => e.id === id);
-                if (index !== -1) {
-                    const entity = entities[index];
-                    entity.element.classList.remove('spawned'); // Trigger fade-out
-                    entity.element.classList.add('spawn-animation');
-                    entity.element.style.transform = `scale(0.5) translate(${entity.x}px, ${entity.y}px)`; // Shrink out
-                    entity.element.style.opacity = '0';
-                    setTimeout(() => {
-                        entity.element.remove();
-                        entities.splice(index, 1);
-                        if (selectedEntity && selectedEntity.id === id) {
-                            setSelectedEntity(null);
-                        }
-                        UIController.showToast('Item deleted!', 'info');
-                    }, 300); // Wait for fade-out transition
-                }
-            };
-
-            const updateEntityPosition = (id, newX, newY, newScale = null) => {
-                const entity = entities.find(e => e.id === id);
-                if (entity) {
-                    entity.x = newX;
-                    entity.y = newY;
-                    if (newScale !== null) {
-                        entity.scale = newScale;
-                        entity.element.style.width = `${entity.data.width * newScale}px`;
-                        entity.element.style.height = `${entity.data.height * newScale}px`;
-                        entity.element.dataset.scale = newScale;
-                    }
-                    applyEntityTransform(entity);
-                }
-            };
-
-            const updateEntityZIndex = (id, newZIndex) => {
-                const entity = entities.find(e => e.id === id);
-                if (entity) {
-                    entity.zIndex = newZIndex;
-                    entity.element.style.zIndex = newZIndex;
-                    entity.element.dataset.zIndex = newZIndex;
-                }
             }
 
+            async function loadAllAssets() {
+                const loadPromises = [];
+                Object.values(ASSET_CONFIG.fish).forEach(f => loadPromises.push(loadImage(f.src)));
+                Object.values(ASSET_CONFIG.ornaments).forEach(o => loadPromises.push(loadImage(o.src)));
+                loadPromises.push(loadImage(ASSET_CONFIG.background));
+                await Promise.all(loadPromises);
+                console.log('All assets preloaded.');
+            }
 
-            const setSelectedEntity = (entity) => {
-                if (selectedEntity) {
-                    selectedEntity.element.classList.remove('selected');
-                }
-                selectedEntity = entity;
-                if (selectedEntity) {
-                    selectedEntity.element.classList.add('selected');
-                }
-            };
+            function getAssetConfig(id) {
+                // Dynamically find asset across fish/ornaments
+                const fish = ASSET_CONFIG.fish.find(f => f.id === id);
+                if (fish) return { ...fish, type: 'fish' };
+                const ornament = ASSET_CONFIG.ornaments.find(o => o.id === id);
+                if (ornament) return { ...ornament, type: 'ornament' };
+                return null;
+            }
 
-            const getSelectedEntity = () => selectedEntity;
-            const getAllEntities = () => entities;
-            const clearEntities = () => {
-                entities.forEach(entity => entity.element.remove());
-                entities = [];
-                nextEntityId = 1;
-                setSelectedEntity(null);
-            };
-
-            const applyEntityTransform = (entity) => {
-                const elem = entity.element;
-                let transform = `translate(${entity.x}px, ${entity.y}px)`;
-
-                if (entity.isFish) {
-                    // Apply flip and tilt for fish
-                    const flipScaleX = entity.direction === -1 ? -1 : 1;
-                    transform += ` scaleX(${flipScaleX}) rotateZ(${entity.tilt}deg)`;
-
-                    // Depth illusion: scale & blur based on Y position (deeper = smaller/blurrier)
-                    const normalizedY = entity.y / entityLayer.clientHeight; // 0 to 1
-                    const minDepthScale = entity.data.minScale || 0.7;
-                    const maxDepthScale = entity.data.maxScale || 1.1;
-                    const depthScale = minDepthScale + (maxDepthScale - minDepthScale) * (1 - normalizedY);
-                    elem.style.transform = `${transform} scale(${depthScale})`;
-
-                    const maxBlur = 3; // Max blur in pixels
-                    const blurAmount = maxBlur * (1 - normalizedY); // More blur when shallower
-                    elem.style.filter = `blur(${blurAmount}px)`;
-
-                    // Ensure the background image flips correctly without flipping the entire entity div (which contains controls)
-                    elem.style.setProperty('transform', `${transform} scale(${depthScale})`);
-                    elem.style.setProperty('transform-origin', 'center center'); // Ensure rotation/scale is from center
-                    elem.style.setProperty('transform-style', 'preserve-3d'); // For 3D transformations
-
-                    // Apply the scaleX directly to the background image for flipping the fish itself
-                    elem.style.setProperty('-webkit-mask-image', `url(${entity.data.path})`);
-                    elem.style.setProperty('mask-image', `url(${entity.data.path})`);
-                    elem.style.setProperty('background-image', 'none'); // Remove original background-image
-                    elem.style.setProperty('background-color', 'transparent'); // Ensure no background color shows through mask
-                    elem.style.setProperty('-webkit-mask-size', 'contain');
-                    elem.style.setProperty('mask-size', 'contain');
-                    elem.style.setProperty('-webkit-mask-repeat', 'no-repeat');
-                    elem.style.setProperty('mask-repeat', 'no-repeat');
-                    elem.style.setProperty('-webkit-mask-position', 'center');
-                    elem.style.setProperty('mask-position', 'center');
-
-                } else {
-                    elem.style.transform = `translate(${entity.x}px, ${entity.y}px) scale(${entity.scale})`;
-                }
-            };
-
+            function getAssetsByType(type) {
+                return ASSET_CONFIG[type];
+            }
 
             return {
-                createEntity,
-                removeEntity,
-                updateEntityPosition,
-                updateEntityZIndex,
-                setSelectedEntity,
-                getSelectedEntity,
-                getAllEntities,
-                clearEntities,
-                applyEntityTransform // Expose for initial setup and updates
+                loadImage,
+                loadAllAssets,
+                getAssetConfig,
+                getAssetsByType
             };
         })();
 
         // --- Module: UIController ---
         // Manages all UI elements, panels, modals, and toasts.
         const UIController = (() => {
-            const elements = {
-                aquariumContainer: document.getElementById('aquarium-container'),
-                background: document.getElementById('background'),
-                shopPanel: document.getElementById('shop-panel'),
-                shopToggleBtn: document.getElementById('shop-toggle-btn'),
-                shopCloseBtn: document.getElementById('shop-close-btn'),
-                shopTabButtons: document.querySelectorAll('.shop-tab-button'),
-                fishShopContent: document.getElementById('fish-shop-content').querySelector('.shop-item-grid'),
-                ornamentsShopContent: document.getElementById('ornaments-shop-content').querySelector('.shop-item-grid'),
-                quantityModal: document.getElementById('quantity-modal'),
-                modalItemName: document.getElementById('modal-item-name'),
-                quantityInput: document.getElementById('quantity-input'),
-                confirmQuantityBtn: document.getElementById('confirm-quantity-btn'),
-                cancelQuantityBtn: document.getElementById('cancel-quantity-btn'),
-                saveBtn: document.getElementById('save-btn'),
-                loadBtn: document.getElementById('load-btn'),
-                resetBtn: document.getElementById('reset-btn'),
-                musicToggleBtn: document.getElementById('music-toggle-btn'),
-                backgroundMusic: document.getElementById('background-music'),
-                toastContainer: document.getElementById('toast-container'),
-                entityLayer: document.getElementById('entity-layer')
-            };
 
-            let activeShopTab = 'fish';
-            let currentShopSelection = null; // { type: 'fish', id: 'fish1' }
+            function init() {
+                _setupEventListeners();
+                _generateShopItems(AssetManager.getAssetsByType('fish'), DOM.fishShopItemsDiv, 'fish');
+                _generateShopItems(AssetManager.getAssetsByType('ornaments'), DOM.ornamentShopItemsDiv, 'ornaments');
+                DOM.shopPanel.classList.add('hidden'); // Shop starts hidden
+                _checkMobileView(); // Adjust UI based on initial viewport
+                _setInitialMusicState(); // Set music state based on localStorage
+            }
 
-            const init = () => {
-                setupEventListeners();
-                loadShopItems();
-                setRandomBackground();
-                elements.musicToggleBtn.classList.add(elements.backgroundMusic.paused ? '' : 'active');
-                elements.musicToggleBtn.innerHTML = elements.backgroundMusic.paused ? '<span class="icon">🔇</span> Music OFF' : '<span class="icon">🎵</span> Music ON';
-            };
-
-            const setupEventListeners = () => {
-                elements.shopToggleBtn.addEventListener('click', toggleShopPanel);
-                elements.shopCloseBtn.addEventListener('click', toggleShopPanel);
-                elements.shopTabButtons.forEach(button => {
-                    button.addEventListener('click', (e) => switchShopTab(e.target.dataset.tab));
+            function _setupEventListeners() {
+                DOM.tabFish.addEventListener('click', () => switchShopTab('fish'));
+                DOM.tabOrnaments.addEventListener('click', () => switchShopTab('ornaments'));
+                DOM.toggleShopBtn.addEventListener('click', () => toggleShopPanel());
+                DOM.modalCloseBtn.addEventListener('click', () => hideItemPreviewModal());
+                DOM.itemPreviewModal.addEventListener('click', (e) => {
+                    if (e.target === DOM.itemPreviewModal) hideItemPreviewModal();
                 });
-                elements.confirmQuantityBtn.addEventListener('click', () => {
-                    const quantity = parseInt(elements.quantityInput.value, 10);
-                    if (currentShopSelection && !isNaN(quantity) && quantity > 0) {
-                        spawnItems(currentShopSelection.id, quantity);
-                        hideModal();
-                    } else {
-                        showToast('Invalid quantity!', 'error');
+                DOM.quantityMinusBtn.addEventListener('click', () => adjustModalQuantity(-1));
+                DOM.quantityPlusBtn.addEventListener('click', () => adjustModalQuantity(1));
+                DOM.modalQuantityInput.addEventListener('input', (e) => _sanitizeQuantityInput(e.target));
+                DOM.modalAddBtn.addEventListener('click', () => _addItemFromModal());
+
+                // Dashboard buttons
+                DOM.playMusicBtn.addEventListener('click', toggleMusic);
+                DOM.toggleBubblesBtn.addEventListener('click', toggleBubbles);
+                DOM.saveStateBtn.addEventListener('click', InputHandler.saveAquariumState);
+                DOM.loadStateBtn.addEventListener('click', InputHandler.loadAquariumState);
+                DOM.resetAquariumBtn.addEventListener('click', () => {
+                    if (confirm('Are you sure you want to reset the aquarium? All items will be removed.')) {
+                        EntityManager.clearAllItems();
+                        InputHandler.saveAquariumState(); // Save empty state
+                        showToast('Aquarium has been reset!', 'info');
                     }
                 });
-                elements.cancelQuantityBtn.addEventListener('click', hideModal);
-                elements.saveBtn.addEventListener('click', InputHandler.saveAquarium);
-                elements.loadBtn.addEventListener('click', InputHandler.loadAquarium);
-                elements.resetBtn.addEventListener('click', () => {
-                    if (confirm('Are you sure you want to reset the aquarium? All items will be deleted.')) {
-                        EntityManager.clearEntities();
-                        InputHandler.saveAquarium(); // Save empty state
-                        showToast('Aquarium reset!', 'info');
+
+                // Global event for deselecting
+                DOM.aquariumContainer.addEventListener('pointerdown', (e) => {
+                    if (currentGameState.selectedItem && !e.target.closest('.draggable-item')) {
+                        currentGameState.selectedItem.deselect();
                     }
                 });
-                elements.musicToggleBtn.addEventListener('click', toggleMusic);
-            };
 
-            const setRandomBackground = () => {
-                const bg = ASSET_CONFIG.backgrounds[Math.floor(Math.random() * ASSET_CONFIG.backgrounds.length)];
-                if (bg) {
-                    elements.background.style.backgroundImage = `url(${bg.path})`;
+                window.addEventListener('resize', Utils.debounce(() => {
+                    _checkMobileView();
+                    EntityManager.repositionItemsForResize(); // Ensure items stay within bounds
+                }, 200));
+            }
+
+            function _setInitialMusicState() {
+                const storedMusicState = localStorage.getItem('isMusicPlaying');
+                if (storedMusicState === 'true') {
+                    DOM.backgroundMusic.play().catch(e => console.log('Music autoplay prevented:', e));
+                    currentGameState.isMusicPlaying = true;
+                    DOM.playMusicBtn.innerHTML = '<span class="icon">🔇</span> Music';
+                } else {
+                    DOM.backgroundMusic.pause();
+                    currentGameState.isMusicPlaying = false;
+                    DOM.playMusicBtn.innerHTML = '<span class="icon">🎵</span> Music';
                 }
-            };
+                const storedBubblesState = localStorage.getItem('bubblesEnabled');
+                if (storedBubblesState === 'false') {
+                    currentGameState.bubblesEnabled = false;
+                    DOM.toggleBubblesBtn.innerHTML = '<span class="icon">🫧</span> Bubbles';
+                } else {
+                    currentGameState.bubblesEnabled = true;
+                    DOM.toggleBubblesBtn.innerHTML = '<span class="icon">🫧</span> Bubbles';
+                    EntityManager.enableBubbles();
+                }
+            }
 
-            const toggleShopPanel = () => {
-                elements.shopPanel.classList.toggle('open');
-                elements.shopToggleBtn.classList.toggle('active', elements.shopPanel.classList.contains('open'));
-            };
 
-            const switchShopTab = (tabId) => {
-                elements.shopTabButtons.forEach(btn => btn.classList.remove('active'));
-                document.querySelector(`.shop-tab-button[data-tab="${tabId}"]`).classList.add('active');
+            function _checkMobileView() {
+                if (window.innerWidth <= 768) {
+                    DOM.shopPanel.classList.remove('visible');
+                    DOM.shopPanel.classList.add('hidden'); // Ensure shop is hidden on small screens
+                    DOM.toggleShopBtn.style.display = 'flex'; // Show toggle button
+                } else {
+                    DOM.shopPanel.classList.remove('hidden');
+                    DOM.shopPanel.classList.add('visible'); // Show shop on larger screens
+                    DOM.toggleShopBtn.style.display = 'none'; // Hide toggle button
+                }
+            }
 
-                document.querySelectorAll('.shop-content').forEach(content => content.classList.remove('active'));
-                document.getElementById(`${tabId}-shop-content`).classList.add('active');
-                activeShopTab = tabId;
-            };
+            function _generateShopItems(assets, container, type) {
+                container.innerHTML = '';
+                assets.forEach(asset => {
+                    const shopItem = document.createElement('div');
+                    shopItem.classList.add('shop-item');
+                    shopItem.title = asset.name;
 
-            const loadShopItems = () => {
-                // Fish
-                elements.fishShopContent.innerHTML = '';
-                AssetManager.getAssetsByType('fishes').forEach(fish => {
-                    const itemDiv = createShopItemElement(fish, 'fish');
-                    elements.fishShopContent.appendChild(itemDiv);
+                    const img = document.createElement('img');
+                    img.src = asset.src;
+                    img.alt = asset.name;
+                    img.loading = 'lazy'; // Lazy load shop thumbnails
+                    shopItem.appendChild(img);
+
+                    // Hover preview
+                    const previewDiv = document.createElement('div');
+                    previewDiv.classList.add('shop-item-preview');
+                    const previewImg = document.createElement('img');
+                    previewImg.src = asset.src;
+                    previewDiv.appendChild(previewImg);
+                    shopItem.appendChild(previewDiv);
+
+
+                    shopItem.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        showItemPreviewModal(asset, type);
+                    });
+                    container.appendChild(shopItem);
                 });
+            }
 
-                // Ornaments
-                elements.ornamentsShopContent.innerHTML = '';
-                AssetManager.getAssetsByType('ornaments').forEach(ornament => {
-                    const itemDiv = createShopItemElement(ornament, 'ornament');
-                    elements.ornamentsShopContent.appendChild(itemDiv);
-                });
-            };
+            function switchShopTab(tabName) {
+                currentGameState.currentShopTab = tabName;
+                DOM.tabFish.classList.toggle('active', tabName === 'fish');
+                DOM.tabOrnaments.classList.toggle('active', tabName === 'ornaments');
+                DOM.fishShopItemsDiv.classList.toggle('hidden', tabName !== 'fish');
+                DOM.ornamentShopItemsDiv.classList.toggle('hidden', tabName !== 'ornaments');
+            }
 
-            const createShopItemElement = (item, type) => {
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'shop-item';
-                itemDiv.dataset.id = item.id;
-                itemDiv.dataset.type = type;
+            function toggleShopPanel() {
+                DOM.shopPanel.classList.toggle('hidden');
+                DOM.shopPanel.classList.toggle('visible');
+            }
 
-                const img = document.createElement('img');
-                img.src = item.path;
-                img.alt = item.name;
-                img.loading = 'lazy'; // Lazy load shop images
+            function toggleMusic() {
+                if (currentGameState.isMusicPlaying) {
+                    DOM.backgroundMusic.pause();
+                    DOM.playMusicBtn.innerHTML = '<span class="icon">🎵</span> Music';
+                    localStorage.setItem('isMusicPlaying', 'false');
+                    showToast('Music OFF', 'info');
+                } else {
+                    DOM.backgroundMusic.play().catch(e => console.error("Music play prevented:", e));
+                    DOM.playMusicBtn.innerHTML = '<span class="icon">🔇</span> Music';
+                    localStorage.setItem('isMusicPlaying', 'true');
+                    showToast('Music ON', 'info');
+                }
+                currentGameState.isMusicPlaying = !currentGameState.isMusicPlaying;
+            }
 
-                const nameSpan = document.createElement('span');
-                nameSpan.textContent = item.name;
+            function toggleBubbles() {
+                currentGameState.bubblesEnabled = !currentGameState.bubblesEnabled;
+                if (currentGameState.bubblesEnabled) {
+                    EntityManager.enableBubbles();
+                    DOM.toggleBubblesBtn.innerHTML = '<span class="icon">🫧</span> Bubbles';
+                } else {
+                    EntityManager.disableBubbles();
+                    DOM.toggleBubblesBtn.innerHTML = '<span class="icon">🫧</span> Bubbles';
+                }
+                localStorage.setItem('bubblesEnabled', currentGameState.bubblesEnabled);
+                showToast(`Bubbles ${currentGameState.bubblesEnabled ? 'Enabled' : 'Disabled'}`);
+            }
 
-                itemDiv.appendChild(img);
-                itemDiv.appendChild(nameSpan);
+            function showItemPreviewModal(asset, type) {
+                currentGameState.modalSelectedItem = { asset: asset, type: type };
+                DOM.modalItemName.textContent = asset.name;
+                DOM.modalItemPreview.src = asset.src;
+                DOM.modalQuantityInput.value = 1;
 
-                itemDiv.addEventListener('click', () => showQuantityModal(item.id, item.name, type));
-                return itemDiv;
-            };
+                const currentCount = type === 'fish' ? EntityManager.fishCount : EntityManager.ornamentCount;
+                const maxAllowed = type === 'fish' ? GAME_SETTINGS.MAX_FISH : GAME_SETTINGS.MAX_ORNAMENTS;
+                const remaining = maxAllowed - currentCount;
 
-            const showQuantityModal = (assetId, name, type) => {
-                currentShopSelection = { id: assetId, type: type };
-                elements.modalItemName.textContent = `Add ${name}`;
-                elements.quantityInput.value = 1;
-                elements.quantityModal.classList.add('active');
-            };
+                DOM.modalQuantityInput.max = Math.max(0, remaining).toString();
+                DOM.modalQuantityInput.min = '1';
 
-            const hideModal = () => {
-                elements.quantityModal.classList.remove('active');
-                currentShopSelection = null;
-            };
+                // Ornament don't have quantity input currently. Always add 1
+                const quantityControls = DOM.itemPreviewModal.querySelector('.modal-quantity-controls');
+                if (type === 'ornament') {
+                    quantityControls.style.display = 'none';
+                    DOM.modalAddBtn.textContent = 'Add to Aquarium';
+                    DOM.modalQuantityInput.value = 1; // Force 1 for ornaments
+                } else {
+                    quantityControls.style.display = 'flex';
+                    DOM.modalAddBtn.textContent = 'Add to Aquarium';
+                }
 
-            const spawnItems = (assetId, quantity) => {
-                const aquariumWidth = elements.aquariumContainer.clientWidth;
-                const aquariumHeight = elements.aquariumContainer.clientHeight;
+                DOM.itemPreviewModal.classList.add('visible');
+            }
 
+            function hideItemPreviewModal() {
+                DOM.itemPreviewModal.classList.remove('visible');
+                currentGameState.modalSelectedItem = null;
+            }
+
+            function adjustModalQuantity(delta) {
+                let current = parseInt(DOM.modalQuantityInput.value);
+                let newVal = current + delta;
+                const max = parseInt(DOM.modalQuantityInput.max);
+                newVal = Math.max(1, Math.min(newVal, max));
+                DOM.modalQuantityInput.value = newVal;
+            }
+
+            function _sanitizeQuantityInput(inputElement) {
+                let val = parseInt(inputElement.value);
+                const min = parseInt(inputElement.min);
+                const max = parseInt(inputElement.max);
+
+                if (isNaN(val) || val < min) val = min;
+                if (val > max) val = max;
+                inputElement.value = val;
+            }
+
+            function _addItemFromModal() {
+                if (!currentGameState.modalSelectedItem) return;
+
+                const { asset, type } = currentGameState.modalSelectedItem;
+                const quantity = type === 'fish' ? parseInt(DOM.modalQuantityInput.value) : 1;
+
+                let itemsAdded = 0;
                 for (let i = 0; i < quantity; i++) {
-                    const asset = AssetManager.getAsset(assetId);
-                    const randomScale = asset.minScale + Math.random() * (asset.maxScale - asset.minScale);
-
-                    const entityWidth = asset.width * randomScale;
-                    const entityHeight = asset.height * randomScale;
-
-                    // Ensure entity spawns fully within bounds
-                    const x = Math.random() * (aquariumWidth - entityWidth);
-                    const y = Math.random() * (aquariumHeight - entityHeight);
-
-                    const zIndex = asset.isFixed ? Math.floor(y + entityHeight / 2) : Math.floor(y + entityHeight / 2) + 500; // Z-index based on Y-position for depth illusion
-                    EntityManager.createEntity(assetId, x, y, randomScale, zIndex);
+                    const newItem = EntityManager.createItem(asset, type);
+                    if (newItem) {
+                        itemsAdded++;
+                    } else {
+                        showToast(`Max ${type}s reached!`, 'error');
+                        break;
+                    }
                 }
-                showToast(`${quantity} ${AssetManager.getAsset(assetId).name}(s) added!`, 'success');
-            };
 
-            const showToast = (message, type = 'info', duration = 3000) => {
+                if (itemsAdded > 0) {
+                    showToast(`Added ${itemsAdded} ${asset.name}${itemsAdded > 1 ? 's' : ''}!`, 'success');
+                }
+                hideItemPreviewModal();
+            }
+
+            function showToast(message, type = 'info', duration = 3000) {
                 const toast = document.createElement('div');
-                toast.className = `toast ${type}`;
+                toast.classList.add('toast', type);
                 toast.textContent = message;
-                elements.toastContainer.appendChild(toast);
+                DOM.toastContainer.appendChild(toast);
 
-                requestAnimationFrame(() => {
-                    toast.classList.add('show');
-                });
+                // Force reflow for CSS transition
+                void toast.offsetWidth;
+
+                toast.classList.add('show');
 
                 setTimeout(() => {
                     toast.classList.remove('show');
                     toast.addEventListener('transitionend', () => toast.remove());
                 }, duration);
-            };
-
-            const toggleMusic = () => {
-                if (elements.backgroundMusic.paused) {
-                    elements.backgroundMusic.play().then(() => {
-                        elements.musicToggleBtn.classList.add('active');
-                        elements.musicToggleBtn.innerHTML = '<span class="icon">🎵</span> Music ON';
-                        showToast('Music ON', 'info');
-                    }).catch(error => {
-                        console.error('Autoplay prevented:', error);
-                        showToast('Music autoplay prevented. Please interact with the page.', 'error');
-                    });
-                } else {
-                    elements.backgroundMusic.pause();
-                    elements.musicToggleBtn.classList.remove('active');
-                    elements.musicToggleBtn.innerHTML = '<span class="icon">🔇</span> Music OFF';
-                    showToast('Music OFF', 'info');
-                }
-            };
+            }
 
             return {
                 init,
-                showToast,
+                switchShopTab,
                 toggleShopPanel,
-                hideModal, // Expose for external calls if needed
-                getElements: () => elements // For InputHandler to access DOM elements
+                showItemPreviewModal,
+                hideItemPreviewModal,
+                showToast
             };
         })();
 
-        // --- Module: InputHandler ---
-        // Manages all user input (mouse, touch) for dragging, scaling, and controls.
-        const InputHandler = (() => {
-            let activeDrag = null; // { entity: Entity, startX: number, startY: number, startEntityX: number, startEntityY: number, mode: 'drag' | 'resize' }
-            let initialPinchDistance = 0;
-            const elements = UIController.getElements(); // Access UI elements
+        // --- Module: EntityManager ---
+        // Manages all active entities (fish, ornaments, bubbles) in the aquarium.
+        const EntityManager = (() => {
+            let items = []; // All DraggableItem instances
+            let bubbles = []; // All Bubble instances
 
-            const init = () => {
-                addGlobalEventListeners();
-                addEntityLayerEventListeners();
-            };
+            function createItem(assetConfig, type) {
+                let newItem = null;
+                const currentCount = type === 'fish' ? items.filter(i => i instanceof Fish).length : items.filter(i => i instanceof Ornament).length;
+                const maxAllowed = type === 'fish' ? GAME_SETTINGS.MAX_FISH : GAME_SETTINGS.MAX_ORNAMENTS;
 
-            const addGlobalEventListeners = () => {
-                document.addEventListener('pointerdown', handlePointerDown);
-                document.addEventListener('pointermove', handlePointerMove);
-                document.addEventListener('pointerup', handlePointerUp);
-                document.addEventListener('keydown', handleKeyDown);
+                if (currentCount >= maxAllowed) {
+                    return null; // Max items of this type reached
+                }
 
-                elements.aquariumContainer.addEventListener('wheel', handleWheel, { passive: false });
-            };
+                if (type === 'fish') {
+                    newItem = new Fish(assetConfig);
+                } else if (type === 'ornament') {
+                    newItem = new Ornament(assetConfig);
+                }
+                if (newItem) {
+                    items.push(newItem);
+                    currentGameState.itemsToSpawn.push(newItem); // Add to spawn queue
+                }
+                return newItem;
+            }
 
-            const addEntityLayerEventListeners = () => {
-                // Using event delegation for entity interactions
-                elements.entityLayer.addEventListener('pointerdown', (e) => {
-                    const target = e.target.closest('.aquarium-entity');
-                    if (target) {
-                        e.stopPropagation(); // Prevent container from capturing event
-                        handleEntityPointerDown(e);
+            function removeItem(itemToRemove) {
+                items = items.filter(item => item !== itemToRemove);
+                if (currentGameState.selectedItem === itemToRemove) {
+                    currentGameState.selectedItem = null;
+                }
+                itemToRemove.element.classList.add('spawn-animation'); // Re-use animation class for fade out
+                itemToRemove.element.style.opacity = '0';
+                itemToRemove.element.style.transform = `translate(${itemToRemove.x}px, ${itemToRemove.y}px) scale(0.5)`;
+
+                setTimeout(() => itemToRemove.element.remove(), GAME_SETTINGS.SPAWN_ANIMATION_DURATION);
+                UIController.showToast('Item deleted!', 'info');
+            }
+
+            function clearAllItems() {
+                items.forEach(item => item.element.remove());
+                items = [];
+                currentGameState.selectedItem = null;
+            }
+
+            function update(deltaTime) {
+                // Handle item spawning animations
+                const newlySpawned = [];
+                currentGameState.itemsToSpawn = currentGameState.itemsToSpawn.filter(item => {
+                    if (!item._spawnStartTime) {
+                        item._spawnStartTime = performance.now();
+                        // Set initial position for spawn animation
+                        item.element.style.setProperty('--initial-x', `${item.x}px`);
+                        item.element.style.setProperty('--initial-y', `${item.y}px`);
+                        item.element.style.setProperty('--target-scale', item.scale);
+                        item.element.style.setProperty('--target-x', `${item.x}px`);
+                        item.element.style.setProperty('--target-y', `${item.y}px`);
+                    }
+
+                    const elapsed = performance.now() - item._spawnStartTime;
+                    if (elapsed < GAME_SETTINGS.SPAWN_ANIMATION_DURATION) {
+                        item.element.classList.add('spawn-animation');
+                        item.element.classList.add('spawn-active'); // To apply actual transform during animation
+                        return true; // Keep in queue
+                    } else {
+                        item.element.classList.remove('spawn-animation');
+                        item.element.classList.remove('spawn-active');
+                        item.element.style.opacity = '1';
+                        item.applyTransform(); // Ensure final transform is applied
+                        newlySpawned.push(item);
+                        return false; // Remove from queue
                     }
                 });
 
-                elements.entityLayer.addEventListener('click', (e) => {
-                    const target = e.target.closest('.aquarium-entity');
-                    if (!target) {
-                        EntityManager.setSelectedEntity(null); // Deselect if clicking empty space
+                // Update non-dragging items
+                items.forEach(item => {
+                    if (item.update && !item.isDragging && !currentGameState.itemsToSpawn.includes(item)) {
+                        item.update(deltaTime);
                     }
                 });
 
-                // Control icons within entities
-                elements.entityLayer.addEventListener('click', (e) => {
-                    const controlIcon = e.target.closest('.control-icon');
-                    if (controlIcon) {
-                        e.stopPropagation(); // Prevent entity drag/selection
-                        handleControlIconClick(controlIcon);
+                // Update bubbles
+                if (currentGameState.bubblesEnabled) {
+                    bubbles.forEach(bubble => bubble.update(deltaTime));
+                }
+            }
+
+            function enableBubbles() {
+                if (bubbles.length === 0) { // Only create if none exist
+                    for (let i = 0; i < GAME_SETTINGS.BUBBLE_COUNT; i++) {
+                        bubbles.push(new Bubble());
                     }
+                }
+                bubbles.forEach(b => b.element.style.display = ''); // Show them
+            }
+
+            function disableBubbles() {
+                bubbles.forEach(b => b.element.style.display = 'none'); // Hide them
+            }
+
+            function repositionItemsForResize() {
+                items.forEach(item => {
+                    item.clampPosition();
+                    item.applyTransform();
                 });
+                bubbles.forEach(bubble => bubble.init()); // Re-initialize bubble positions
+            }
+
+            function getAllItems() {
+                return items;
+            }
+
+            function getSelectedOrnaments() {
+                 return items.filter(item => item instanceof Ornament);
+            }
+
+            function getFishCount() {
+                return items.filter(item => item instanceof Fish).length;
+            }
+
+            function getOrnamentCount() {
+                return items.filter(item => item instanceof Ornament).length;
+            }
+
+            return {
+                createItem,
+                removeItem,
+                clearAllItems,
+                update,
+                enableBubbles,
+                disableBubbles,
+                repositionItemsForResize,
+                getAllItems,
+                getFishCount,
+                getOrnamentCount
             };
+        })();
 
-            const handlePointerDown = (e) => {
-                if (e.button === 2) return; // Ignore right-click
+        // --- Base DraggableItem Class ---
+        class DraggableItem {
+            constructor(asset, className, transformOrigin = 'center center') {
+                this.id = `${asset.id}_${Date.now()}_${Utils.getRandom(0, 999).toFixed(0)}`;
+                this.asset = asset;
+                this.element = document.createElement('div');
+                this.element.classList.add('draggable-item', className);
+                this.element.dataset.id = this.id;
+                this.element.dataset.assetId = asset.id; // Store asset ID for persistence
+                this.element.style.transformOrigin = transformOrigin;
+                DOM.aquariumContainer.appendChild(this.element);
 
-                const entityElement = e.target.closest('.aquarium-entity');
-                if (!entityElement) {
-                    EntityManager.setSelectedEntity(null); // Deselect if clicking outside an entity
+                this.img = document.createElement('img');
+                this.img.src = asset.src;
+                this.img.alt = asset.name;
+                this.element.appendChild(this.img);
+
+                this.controls = this._createControls();
+                this.element.appendChild(this.controls);
+
+                this.x = 0;
+                this.y = 0;
+                this.scale = Utils.getRandom(asset.scaleRange[0], asset.scaleRange[1]);
+                this.isDragging = false;
+                this.offsetX = 0;
+                this.offsetY = 0;
+                this.initialPinchDistance = 0; // For pinch-to-zoom
+
+                this._addEventListeners();
+                this.deselect();
+
+                // Bind event handlers once to ensure 'this' context and correct removal
+                this._onPointerMoveBound = this._onPointerMove.bind(this);
+                this._onPointerUpBound = this._onPointerUp.bind(this);
+
+                // Initial positioning after image loads for accurate dimensions
+                this.img.onload = () => this.initPositionAndSize();
+                if (this.img.complete) { // Handle cached images
+                    this.initPositionAndSize();
+                }
+            }
+
+            _createControls() {
+                const controlsDiv = document.createElement('div');
+                controlsDiv.classList.add('item-controls');
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.classList.add('delete-btn');
+                deleteBtn.innerHTML = '🗑️';
+                deleteBtn.title = 'Delete Item';
+                deleteBtn.addEventListener('pointerdown', (e) => e.stopPropagation()); // Prevent dragging when pressing delete
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    EntityManager.removeItem(this);
+                });
+                controlsDiv.appendChild(deleteBtn);
+
+                const resizeSlider = document.createElement('input');
+                resizeSlider.type = 'range';
+                resizeSlider.min = this.asset.scaleRange[0].toString();
+                resizeSlider.max = this.asset.scaleRange[1].toString();
+                resizeSlider.step = '0.01';
+                resizeSlider.value = this.scale.toString();
+                resizeSlider.title = 'Resize';
+                resizeSlider.addEventListener('pointerdown', (e) => e.stopPropagation()); // Prevent dragging when interacting with slider
+                resizeSlider.addEventListener('input', (e) => {
+                    this.scale = parseFloat(e.target.value);
+                    this.applyTransform();
+                });
+                controlsDiv.appendChild(resizeSlider);
+
+                const layerUpBtn = document.createElement('button');
+                layerUpBtn.innerHTML = '&#9650;'; // Up arrow
+                layerUpBtn.title = 'Bring Forward';
+                layerUpBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+                layerUpBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.changeZIndex(1);
+                });
+                controlsDiv.appendChild(layerUpBtn);
+
+                const layerDownBtn = document.createElement('button');
+                layerDownBtn.innerHTML = '&#9660;'; // Down arrow
+                layerDownBtn.title = 'Send Backward';
+                layerDownBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+                layerDownBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.changeZIndex(-1);
+                });
+                controlsDiv.appendChild(layerDownBtn);
+
+                return controlsDiv;
+            }
+
+            _addEventListeners() {
+                this.element.addEventListener('pointerdown', this._onPointerDown.bind(this));
+            }
+
+            initPositionAndSize() {
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+
+                // Set initial size based on asset config
+                this.element.style.width = `${this.asset.baseWidth}px`;
+                this.element.style.height = `${this.asset.baseHeight}px`;
+
+                this.scale = Utils.getRandom(this.asset.scaleRange[0], this.asset.scaleRange[1]);
+                const resizeSlider = this.controls.querySelector('input[type="range"]');
+                if (resizeSlider) resizeSlider.value = this.scale.toString();
+
+                const itemWidth = this.asset.baseWidth * this.scale;
+                const itemHeight = this.asset.baseHeight * this.scale;
+
+                this.x = Utils.getRandom(GAME_SETTINGS.ITEM_BOUNDARY_PADDING, viewportWidth - itemWidth - GAME_SETTINGS.ITEM_BOUNDARY_PADDING);
+                this.y = Utils.getRandom(GAME_SETTINGS.ITEM_BOUNDARY_PADDING, viewportHeight - itemHeight - GAME_SETTINGS.ITEM_BOUNDARY_PADDING);
+
+                this.clampPosition(); // Ensure initial position is within bounds
+                this.applyTransform();
+            }
+
+            clampPosition() {
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+                const currentWidth = this.asset.baseWidth * this.scale;
+                const currentHeight = this.asset.baseHeight * this.scale;
+
+                this.x = Math.max(GAME_SETTINGS.ITEM_BOUNDARY_PADDING, Math.min(this.x, viewportWidth - currentWidth - GAME_SETTINGS.ITEM_BOUNDARY_PADDING));
+                this.y = Math.max(GAME_SETTINGS.ITEM_BOUNDARY_PADDING, Math.min(this.y, viewportHeight - currentHeight - GAME_SETTINGS.ITEM_BOUNDARY_PADDING));
+            }
+
+            applyTransform() {
+                // To be overridden by subclasses for specific transformations (e.g., fish flipping)
+                this.element.style.transform = `translate(${this.x}px, ${this.y}px) scale(${this.scale})`;
+                // Update z-index dynamically based on Y position for depth
+                if (!this.isDragging) { // Don't change z-index if actively dragging
+                    this.element.style.zIndex = Math.floor(this.y + (this.asset.baseHeight * this.scale) / 2);
+                }
+            }
+
+            select() {
+                EntityManager.getAllItems().forEach(item => item.deselect()); // Deselect any other selected item
+                this.element.classList.add('selected');
+                currentGameState.selectedItem = this;
+            }
+
+            deselect() {
+                this.element.classList.remove('selected');
+                if (currentGameState.selectedItem === this) {
+                    currentGameState.selectedItem = null;
+                }
+            }
+
+            changeZIndex(direction) {
+                const currentZIndex = parseInt(this.element.style.zIndex || 1);
+                const newZIndex = Math.max(1, Math.min(999, currentZIndex + direction * 10)); // Adjust by 10 for noticeable change
+                this.element.style.zIndex = newZIndex;
+                UIController.showToast(`Layer changed to ${newZIndex}`, 'info');
+            }
+
+            _onPointerDown(e) {
+                if (e.button === 2 || e.target.closest('.item-controls')) { // Ignore right-click and clicks on controls
                     return;
                 }
+                e.preventDefault(); // Prevent default browser actions (e.g., scrolling, image drag)
+                this.element.setPointerCapture(e.pointerId); // Capture pointer events for this element
 
-                const entity = EntityManager.getAllEntities().find(ent => ent.element === entityElement);
-                if (!entity) return;
+                this.select();
+                this.isDragging = true;
+                this.element.classList.add('dragging');
 
-                EntityManager.setSelectedEntity(entity);
-
-                let mode = 'drag';
-                if (e.target.classList.contains('resize-handle')) {
-                    mode = 'resize';
-                    e.stopPropagation(); // Prevent dragging the entity itself when resizing
+                let clientX, clientY;
+                if (e.touches && e.touches.length === 1) { // Single touch for drag
+                    clientX = e.touches[0].clientX;
+                    clientY = e.touches[0].clientY;
+                    this.initialPinchDistance = 0; // Reset for single touch
+                } else if (e.touches && e.touches.length === 2) { // Two touches for pinch-zoom
+                    clientX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+                    clientY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+                    this.initialPinchDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                } else { // Mouse drag
+                    clientX = e.clientX;
+                    clientY = e.clientY;
+                    this.initialPinchDistance = 0;
                 }
 
-                activeDrag = {
-                    entity: entity,
-                    startX: e.clientX,
-                    startY: e.clientY,
-                    startEntityX: entity.x,
-                    startEntityY: entity.y,
-                    startScale: entity.scale,
-                    mode: mode,
-                    pointerId: e.pointerId
-                };
+                const rect = this.element.getBoundingClientRect();
+                this.offsetX = clientX - rect.left;
+                this.offsetY = clientY - rect.top;
 
-                entityElement.classList.add('dragging');
-                entityElement.setPointerCapture(e.pointerId);
-            };
+                this.element.addEventListener('pointermove', this._onPointerMoveBound);
+                this.element.addEventListener('pointerup', this._onPointerUpBound);
+                this.element.addEventListener('pointercancel', this._onPointerUpBound); // Handle cancellations
+                this.element.addEventListener('lostpointercapture', this._onPointerUpBound); // Handle lost capture
 
-            const handlePointerMove = (e) => {
-                if (!activeDrag || e.pointerId !== activeDrag.pointerId) return;
-
-                const aquariumRect = elements.aquariumContainer.getBoundingClientRect();
-                const currentX = e.clientX - aquariumRect.left;
-                const currentY = e.clientY - aquariumRect.top;
-
-                if (activeDrag.mode === 'drag') {
-                    const deltaX = currentX - activeDrag.startX;
-                    const deltaY = currentY - activeDrag.startY;
-
-                    let newX = activeDrag.startEntityX + deltaX;
-                    let newY = activeDrag.startEntityY + deltaY;
-
-                    // Boundary checks
-                    newX = Math.max(0, Math.min(newX, aquariumRect.width - activeDrag.entity.element.offsetWidth));
-                    newY = Math.max(0, Math.min(newY, aquariumRect.height - activeDrag.entity.element.offsetHeight));
-
-                    EntityManager.updateEntityPosition(activeDrag.entity.id, newX, newY);
-
-                    // Update Z-index based on Y-position for depth illusion
-                    const newZIndex = activeDrag.entity.data.isFixed ? Math.floor(newY + activeDrag.entity.element.offsetHeight / 2) : Math.floor(newY + activeDrag.entity.element.offsetHeight / 2) + 500;
-                    EntityManager.updateEntityZIndex(activeDrag.entity.id, newZIndex);
-
-                } else if (activeDrag.mode === 'resize') {
-                    const deltaY = activeDrag.startY - currentY; // Moving mouse up increases scale
-                    let newScale = activeDrag.startScale * (1 + deltaY * 0.005); // Adjust sensitivity
-
-                    // Clamp scale within min/max defined in asset config
-                    const asset = activeDrag.entity.data;
-                    newScale = Math.max(asset.minScale || 0.5, Math.min(newScale, asset.maxScale || 2.0));
-
-                    // Keep item centered while resizing
-                    const oldWidth = asset.width * activeDrag.startScale;
-                    const oldHeight = asset.height * activeDrag.startScale;
-                    const newWidth = asset.width * newScale;
-                    const newHeight = asset.height * newScale;
-
-                    const newX = activeDrag.startEntityX + (oldWidth - newWidth) / 2;
-                    const newY = activeDrag.startEntityY + (oldHeight - newHeight) / 2;
-
-                    EntityManager.updateEntityPosition(activeDrag.entity.id, newX, newY, newScale);
+                if (this instanceof Fish) {
+                    this.isAutomated = false; // Pause fish animation when dragging
                 }
-            };
+            }
 
-            const handlePointerUp = (e) => {
-                if (!activeDrag || e.pointerId !== activeDrag.pointerId) return;
+            _onPointerMove(e) {
+                if (!this.isDragging) return;
+                e.preventDefault(); // Prevent scrolling on touch devices
 
-                activeDrag.entity.element.classList.remove('dragging');
-                activeDrag.entity.element.releasePointerCapture(e.pointerId);
-                activeDrag = null;
-            };
+                let clientX, clientY;
+                if (e.touches && e.touches.length === 1) { // Single touch: drag
+                    clientX = e.touches[0].clientX;
+                    clientY = e.touches[0].clientY;
+                } else if (e.touches && e.touches.length === 2 && this.initialPinchDistance > 0) { // Two touches: pinch-zoom
+                    const currentDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                    const scaleFactor = currentDistance / this.initialPinchDistance;
+                    let newScale = this.scale * scaleFactor;
 
-            const handleEntityPointerDown = (e) => {
-                 // Already handled by global pointerdown, ensures entity selection and drag mode setting.
-                 // This function mostly exists to prevent bubbling further up if an entity is clicked.
-            };
+                    newScale = Math.max(this.asset.scaleRange[0], Math.min(newScale, this.asset.scaleRange[1]));
+                    this.scale = newScale;
+                    this.initialPinchDistance = currentDistance; // Update initial distance for next frame
 
-            const handleControlIconClick = (iconElement) => {
-                const action = iconElement.dataset.action;
-                const entityElement = iconElement.closest('.aquarium-entity');
-                const entityId = parseInt(entityElement.dataset.id);
-                const entity = EntityManager.getAllEntities().find(e => e.id === entityId);
+                    const resizeSlider = this.controls.querySelector('input[type="range"]');
+                    if (resizeSlider) resizeSlider.value = this.scale.toString();
 
-                if (!entity) return;
-
-                switch (action) {
-                    case 'delete':
-                        EntityManager.removeEntity(entity.id);
-                        break;
-                    case 'resize':
-                        // Resize is handled by drag logic on the icon itself, this click won't do anything specific
-                        // The pointerdown on the resize-handle already sets activeDrag.mode to 'resize'
-                        break;
+                    this.applyTransform();
+                    return; // Skip position update for pinch-zoom
+                } else if (e.touches && e.touches.length > 2) { // More than 2 touches, stop interaction
+                    this._onPointerUp(e);
+                    return;
+                } else { // Mouse move: drag
+                    clientX = e.clientX;
+                    clientY = e.clientY;
                 }
-            };
 
+                this.x = clientX - this.offsetX;
+                this.y = clientY - this.offsetY;
 
-            const handleWheel = (e) => {
-                // Scale currently selected entity
-                const selected = EntityManager.getSelectedEntity();
-                if (selected && !selected.data.isFixed) { // Only scale fish with wheel, not fixed ornaments
-                    e.preventDefault(); // Prevent page scroll
-                    const asset = selected.data;
-                    const scaleChange = e.deltaY * -0.001; // Positive for scroll up, negative for scroll down
-                    let newScale = selected.scale + scaleChange;
+                this.clampPosition();
+                this.applyTransform();
+            }
 
-                    newScale = Math.max(asset.minScale || 0.5, Math.min(newScale, asset.maxScale || 2.0));
+            _onPointerUp(e) {
+                this.isDragging = false;
+                this.element.classList.remove('dragging');
 
-                    // Keep entity centered during scaling
-                    const oldWidth = asset.width * selected.scale;
-                    const oldHeight = asset.height * selected.scale;
-                    const newWidth = asset.width * newScale;
-                    const newHeight = asset.height * newScale;
+                this.element.removeEventListener('pointermove', this._onPointerMoveBound);
+                this.element.removeEventListener('pointerup', this._onPointerUpBound);
+                this.element.removeEventListener('pointercancel', this._onPointerUpBound);
+                this.element.removeEventListener('lostpointercapture', this._onPointerUpBound);
 
-                    const newX = selected.x + (oldWidth - newWidth) / 2;
-                    const newY = selected.y + (oldHeight - newHeight) / 2;
-
-                    EntityManager.updateEntityPosition(selected.id, newX, newY, newScale);
+                // Release pointer capture
+                if (this.element.hasPointerCapture(e.pointerId)) {
+                    this.element.releasePointerCapture(e.pointerId);
                 }
-            };
+            }
+        }
 
-            const handleKeyDown = (e) => {
-                if (e.key === 'Delete' || e.key === 'Backspace') {
-                    const selected = EntityManager.getSelectedEntity();
-                    if (selected) {
-                        EntityManager.removeEntity(selected.id);
-                        EntityManager.setSelectedEntity(null);
+        // --- Ornament Class ---
+        class Ornament extends DraggableItem {
+            constructor(asset) {
+                super(asset, 'ornament', 'bottom center');
+                this.initPositionAndSize();
+            }
+
+            initPositionAndSize() {
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+
+                this.element.style.width = `${this.asset.baseWidth}px`;
+                this.element.style.height = `${this.asset.baseHeight}px`;
+
+                this.scale = Utils.getRandom(this.asset.scaleRange[0], this.asset.scaleRange[1]);
+                const resizeSlider = this.controls.querySelector('input[type="range"]');
+                if (resizeSlider) resizeSlider.value = this.scale.toString();
+
+                const itemWidth = this.asset.baseWidth * this.scale;
+                const itemHeight = this.asset.baseHeight * this.scale;
+
+                this.x = Utils.getRandom(GAME_SETTINGS.ITEM_BOUNDARY_PADDING, viewportWidth - itemWidth - GAME_SETTINGS.ITEM_BOUNDARY_PADDING);
+                // Ornaments sit at the bottom, so Y is clamped relative to the bottom
+                this.y = viewportHeight - itemHeight - Utils.getRandom(0, viewportHeight * 0.08) - GAME_SETTINGS.ITEM_BOUNDARY_PADDING;
+
+                this.clampPosition();
+                this.applyTransform();
+            }
+
+            applyTransform() {
+                // Subtle horizontal drift for ornaments
+                const drift = Math.sin(performance.now() * 0.0001) * 5;
+                this.element.style.transform = `translate(${this.x + drift}px, ${this.y}px) scale(${this.scale})`;
+                 // Z-index based on Y position for depth
+                this.element.style.zIndex = Math.floor(this.y + (this.asset.baseHeight * this.scale) / 2);
+            }
+        }
+
+        // --- Fish Class ---
+        class Fish extends DraggableItem {
+            constructor(asset) {
+                super(asset, 'fish');
+                this.isAutomated = true; // Fish are automated by default
+                this.direction = Utils.getRandom(0, 1) < 0.5 ? 1 : -1; // 1 for right, -1 for left
+                this.speed = Utils.getRandom(asset.speed.min, asset.speed.max);
+                this.amplitude = Utils.getRandom(GAME_SETTINGS.FISH_VERTICAL_AMPLITUDE[0], GAME_SETTINGS.FISH_VERTICAL_AMPLITUDE[1]);
+                this.frequency = Utils.getRandom(GAME_SETTINGS.FISH_VERTICAL_FREQUENCY[0], GAME_SETTINGS.FISH_VERTICAL_FREQUENCY[1]);
+                this.phase = Utils.getRandom(0, Math.PI * 2); // Start phase for sine wave
+                this.baseY = 0; // Initial Y position for sine wave calculation
+                this.idleTimer = 0;
+                this.isIdling = false;
+                this.rotationTilt = 0; // For subtle rotation
+                this.lastFlipTime = performance.now(); // Track last flip for smoother rotation
+
+                this.initPositionAndSize();
+            }
+
+            initPositionAndSize() {
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+
+                this.element.style.width = `${this.asset.baseWidth}px`;
+                this.element.style.height = `${this.asset.baseHeight}px`;
+
+                this.scale = Utils.getRandom(this.asset.scaleRange[0], this.asset.scaleRange[1]);
+                const resizeSlider = this.controls.querySelector('input[type="range"]');
+                if (resizeSlider) resizeSlider.value = this.scale.toString();
+
+                const itemWidth = this.asset.baseWidth * this.scale;
+                const itemHeight = this.asset.baseHeight * this.scale;
+
+                // Initial spawn position: either off-screen left or right, based on direction
+                this.x = this.direction === 1 ? -itemWidth : viewportWidth;
+                this.y = Utils.getRandom(viewportHeight * 0.1, viewportHeight * 0.7); // Mid-range vertical spawn
+                this.baseY = this.y; // Set initial base Y for sine wave
+
+                this.clampPosition();
+                this.applyTransform();
+            }
+
+            applyTransform() {
+                const flipScaleX = this.direction === 1 ? 1 : -1;
+                const currentRotation = this.rotationTilt;
+
+                // Depth illusion: scale & blur based on Y position (deeper = smaller/blurrier)
+                const normalizedY = this.y / window.innerHeight; // 0 to 1
+                const minDepthScale = GAME_SETTINGS.FISH_DEPTH_SCALE_RANGE[0];
+                const maxDepthScale = GAME_SETTINGS.FISH_DEPTH_SCALE_RANGE[1];
+                const depthScale = Utils.getRandom(minDepthScale, maxDepthScale) * (1 - normalizedY * 0.5); // Deeper, slightly smaller
+
+                const maxBlur = GAME_SETTINGS.FISH_DEPTH_BLUR_MAX;
+                const blurAmount = maxBlur * (1 - normalizedY); // More blur when shallower
+
+                this.element.style.filter = `blur(${blurAmount}px)`;
+                this.element.style.transform = `translate(${this.x}px, ${this.y}px) scale(${this.scale * depthScale * flipScaleX}, ${this.scale * depthScale}) rotateZ(${currentRotation}deg)`;
+
+                // Z-index based on Y position for depth
+                if (!this.isDragging) {
+                    this.element.style.zIndex = Math.floor(this.y + (this.asset.baseHeight * this.scale) / 2) + 500; // Fish generally higher than ornaments
+                }
+            }
+
+            update(deltaTime) {
+                if (!this.isAutomated || this.isDragging) return;
+
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+                const itemWidth = this.asset.baseWidth * this.scale;
+                const itemHeight = this.asset.baseHeight * this.scale;
+
+                // Random idle pause
+                if (this.isIdling) {
+                    this.idleTimer -= deltaTime;
+                    if (this.idleTimer <= 0) {
+                        this.isIdling = false;
+                        this.speed = Utils.getRandom(this.asset.speed.min, this.asset.speed.max); // Reset speed
+                        this.direction = Utils.getRandom(0, 1) < 0.5 ? 1 : -1; // Pick new direction
+                        this.lastFlipTime = performance.now(); // Reset flip time
+                    }
+                    this.rotationTilt = 0; // No tilt when idling
+                } else {
+                    // Movement
+                    const moveAmount = this.speed * (deltaTime / 16.66); // Adjust speed based on frame rate
+                    this.x += moveAmount * this.direction;
+                    this.y = this.baseY + Math.sin(this.phase) * this.amplitude;
+                    this.phase += this.frequency * deltaTime;
+
+                    // Apply subtle tilt based on direction and recent flip
+                    const timeSinceFlip = performance.now() - this.lastFlipTime;
+                    const tiltDuration = 500; // ms for tilt animation
+                    if (timeSinceFlip < tiltDuration) {
+                        const progress = timeSinceFlip / tiltDuration;
+                        this.rotationTilt = (this.direction === 1 ? -1 : 1) * this.asset.rotation * Math.sin(progress * Math.PI); // Smooth S-curve tilt
+                    } else {
+                        this.rotationTilt = 0;
+                    }
+
+                    // Horizontal Boundary checks and direction flip
+                    if (this.x + itemWidth >= viewportWidth && this.direction === 1) {
+                        this.direction = -1;
+                        this.isIdling = true;
+                        this.idleTimer = Utils.getRandom(GAME_SETTINGS.FISH_IDLE_DURATION[0], GAME_SETTINGS.FISH_IDLE_DURATION[1]);
+                        this.lastFlipTime = performance.now();
+                    } else if (this.x <= 0 && this.direction === -1) {
+                        this.direction = 1;
+                        this.isIdling = true;
+                        this.idleTimer = Utils.getRandom(GAME_SETTINGS.FISH_IDLE_DURATION[0], GAME_SETTINGS.FISH_IDLE_DURATION[1]);
+                        this.lastFlipTime = performance.now();
+                    }
+
+                    // Vertical boundary clamping for sine wave
+                    const upperYLimit = viewportHeight * 0.05 + GAME_SETTINGS.ITEM_BOUNDARY_PADDING;
+                    const lowerYLimit = viewportHeight * 0.75 - itemHeight - GAME_SETTINGS.ITEM_BOUNDARY_PADDING; // Keep fish above seabed
+
+                    if (this.y < upperYLimit) {
+                        this.baseY = upperYLimit;
+                        this.phase = Math.PI - this.phase; // Reverse sine wave direction
+                    } else if (this.y > lowerYLimit) {
+                        this.baseY = lowerYLimit;
+                        this.phase = Math.PI - this.phase; // Reverse sine wave direction
                     }
                 }
-            };
 
-            const saveAquarium = () => {
-                const entitiesData = EntityManager.getAllEntities().map(entity => ({
-                    assetId: entity.assetId,
-                    x: entity.x,
-                    y: entity.y,
-                    scale: entity.scale,
-                    zIndex: entity.zIndex
-                }));
-                try {
-                    localStorage.setItem('aquariumState', JSON.stringify(entitiesData));
-                    UIController.showToast('Aquarium saved!', 'success');
-                } catch (e) {
-                    console.error("Failed to save aquarium state:", e);
-                    UIController.showToast('Failed to save aquarium.', 'error');
+                this.applyTransform();
+            }
+        }
+
+        // --- Bubbles System ---
+        class Bubble {
+            constructor() {
+                this.element = document.createElement('div');
+                this.element.classList.add('bubble');
+                DOM.aquariumContainer.appendChild(this.element);
+                this.init();
+            }
+
+            init() {
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+
+                this.size = Utils.getRandom(5, 25);
+                this.speed = Utils.getRandom(0.5, 3);
+                this.x = Utils.getRandom(0, viewportWidth - this.size);
+                this.y = viewportHeight + Utils.getRandom(0, 100); // Start below viewport
+                this.opacity = Utils.getRandom(0.3, 0.7);
+
+                this.element.style.width = `${this.size}px`;
+                this.element.style.height = `${this.size}px`;
+                this.element.style.opacity = this.opacity;
+                this.element.style.transform = `translate(${this.x}px, ${this.y}px)`;
+                this.element.style.filter = `blur(${this.size * 0.05}px)`;
+            }
+
+            update(deltaTime) {
+                this.y -= this.speed * (deltaTime / 16.66); // Move up
+                this.x += Math.sin(this.y * 0.005) * 5 * (deltaTime / 16.66); // Subtle side-to-side drift
+
+                this.element.style.transform = `translate(${this.x}px, ${this.y}px)`;
+
+                if (this.y < -this.size) { // Reset if off-screen top
+                    this.init();
                 }
-            };
+            }
 
-            const loadAquarium = () => {
+            remove() {
+                this.element.remove();
+            }
+        }
+
+        // --- Module: InputHandler ---
+        // Manages save/load and general persistence.
+        const InputHandler = (() => {
+
+            function saveAquariumState() {
+                const state = {
+                    version: GAME_SETTINGS.PERSISTENCE_VERSION,
+                    items: EntityManager.getAllItems().map(item => ({
+                        id: item.id, // Persist individual item ID for potential future tracking
+                        assetId: item.asset.id,
+                        type: item instanceof Fish ? 'fish' : 'ornament',
+                        x: item.x,
+                        y: item.y,
+                        scale: item.scale,
+                        // Fish-specific properties
+                        direction: item instanceof Fish ? item.direction : undefined,
+                        isAutomated: item instanceof Fish ? item.isAutomated : undefined,
+                        baseY: item instanceof Fish ? item.baseY : undefined, // For consistent sine wave
+                        phase: item instanceof Fish ? item.phase : undefined,
+                        speed: item instanceof Fish ? item.speed : undefined,
+                        idleTimer: item instanceof Fish ? item.idleTimer : undefined,
+                        isIdling: item instanceof Fish ? item.isIdling : undefined,
+                    })),
+                    musicPlaying: currentGameState.isMusicPlaying,
+                    bubblesEnabled: currentGameState.bubblesEnabled
+                };
+                try {
+                    localStorage.setItem('aquariumState', JSON.stringify(state));
+                    UIController.showToast('Aquarium state saved!', 'success');
+                } catch (e) {
+                    console.error('Failed to save state:', e);
+                    UIController.showToast('Failed to save state!', 'error');
+                }
+            }
+
+            function loadAquariumState() {
                 try {
                     const savedState = localStorage.getItem('aquariumState');
                     if (savedState) {
-                        EntityManager.clearEntities(); // Clear current state before loading
-                        const entitiesData = JSON.parse(savedState);
-                        entitiesData.forEach(data => {
-                            EntityManager.createEntity(data.assetId, data.x, data.y, data.scale, data.zIndex);
+                        const state = JSON.parse(savedState);
+
+                        // Handle versioning for future compatibility
+                        if (state.version !== GAME_SETTINGS.PERSISTENCE_VERSION) {
+                            UIController.showToast('Old save data detected. Attempting migration.', 'info');
+                            // Implement migration logic here for future versions
+                        }
+
+                        EntityManager.clearAllItems(); // Clear current aquarium
+
+                        state.items.forEach(itemData => {
+                            const assetConfig = AssetManager.getAssetConfig(itemData.assetId);
+                            if (assetConfig) {
+                                let newItem;
+                                if (itemData.type === 'fish') {
+                                    newItem = new Fish(assetConfig);
+                                    newItem.direction = itemData.direction;
+                                    newItem.isAutomated = itemData.isAutomated;
+                                    newItem.baseY = itemData.baseY;
+                                    newItem.phase = itemData.phase;
+                                    newItem.speed = itemData.speed;
+                                    newItem.idleTimer = itemData.idleTimer;
+                                    newItem.isIdling = itemData.isIdling;
+                                } else {
+                                    newItem = new Ornament(assetConfig);
+                                }
+                                newItem.x = itemData.x;
+                                newItem.y = itemData.y;
+                                newItem.scale = itemData.scale;
+                                newItem.applyTransform(); // Apply saved transform immediately
+                                EntityManager.createItem(assetConfig, itemData.type); // Create via EntityManager to re-add to items array
+                                EntityManager.getAllItems().pop().element.remove(); // Remove temporary one, then re-add
+                                EntityManager.getAllItems()[EntityManager.getAllItems().length - 1] = newItem; // Replace with fully loaded item
+                            }
                         });
-                        UIController.showToast('Aquarium loaded!', 'success');
+
+                        // Restore global settings
+                        UIController.setMusicState(state.musicPlaying);
+                        UIController.setBubblesState(state.bubblesEnabled);
+
+                        UIController.showToast('Aquarium state loaded!', 'success');
                     } else {
-                        UIController.showToast('No saved aquarium found.', 'info');
+                        UIController.showToast('No saved state found!', 'info');
                     }
                 } catch (e) {
-                    console.error("Failed to load aquarium state:", e);
-                    UIController.showToast('Failed to load aquarium.', 'error');
+                    console.error('Failed to load state:', e);
+                    UIController.showToast('Failed to load state!', 'error');
                 }
-            };
+            }
 
             return {
-                init,
-                saveAquarium,
-                loadAquarium
+                saveAquariumState,
+                loadAquariumState
             };
         })();
+
 
         // --- Module: AnimationEngine ---
-        // Manages the main game loop and all animations (fish, bubbles).
+        // Manages the main game loop.
         const AnimationEngine = (() => {
-            let lastTime = 0;
-            const aquariumContainer = document.getElementById('aquarium-container');
-            const bubbleContainer = document.getElementById('bubble-container');
-            let bubbleCount = 0;
+            let lastTimestamp = 0;
 
-            const init = () => {
-                requestAnimationFrame(gameLoop);
-                setInterval(spawnBubble, 500); // Spawn bubbles periodically
-            };
+            function init() {
+                DOM.aquariumBackground.style.backgroundImage = `url(${ASSET_CONFIG.background})`;
+                currentGameState.animationFrameId = requestAnimationFrame(animate);
+            }
 
-            const gameLoop = (currentTime) => {
-                const deltaTime = currentTime - lastTime;
-                lastTime = currentTime;
+            function animate(timestamp) {
+                const deltaTime = timestamp - lastTimestamp;
+                lastTimestamp = timestamp;
 
-                if (deltaTime > 100) { // Cap delta time to prevent physics anomalies after long pauses
-                    console.warn('Long frame detected, capping deltaTime.');
-                    // deltaTime = 16; // Or a reasonable fixed value
-                }
+                EntityManager.update(deltaTime);
 
-                updateFishAnimations(deltaTime);
-                // Bubble animations are handled by CSS
+                currentGameState.animationFrameId = requestAnimationFrame(animate);
+            }
 
-                requestAnimationFrame(gameLoop);
-            };
-
-            const updateFishAnimations = (deltaTime) => {
-                const entities = EntityManager.getAllEntities();
-                const containerWidth = aquariumContainer.clientWidth;
-                const containerHeight = aquariumContainer.clientHeight;
-
-                entities.filter(e => e.isFish && !e.element.classList.contains('dragging')).forEach(fish => {
-                    // Random idle pauses
-                    if (fish.isIdling) {
-                        fish.idleTimer -= deltaTime;
-                        if (fish.idleTimer <= 0) {
-                            fish.isIdling = false;
-                            fish.speed = fish.data.speed.min + Math.random() * (fish.data.speed.max - fish.data.speed.min); // Reset speed
-                            fish.direction = Math.random() < 0.5 ? 1 : -1; // Pick new direction
-                        }
-                    } else {
-                        // Movement
-                        const moveAmount = (fish.speed * deltaTime) / 16; // Normalize speed by frame rate
-                        fish.x += moveAmount * fish.direction;
-                        fish.y = fish.offsetY + Math.sin(currentTime * fish.frequency + fish.id) * fish.amplitude;
-
-                        // Slight tilt based on direction
-                        fish.tilt = fish.direction === 1 ? -5 : 5; // Tilt slightly opposite to direction of movement
-
-                        // Boundary checks and direction flip
-                        if (fish.x + fish.element.offsetWidth >= containerWidth && fish.direction === 1) {
-                            fish.direction = -1;
-                            fish.isIdling = true;
-                            fish.idleTimer = fish.maxIdleTime;
-                        } else if (fish.x <= 0 && fish.direction === -1) {
-                            fish.direction = 1;
-                            fish.isIdling = true;
-                            fish.idleTimer = fish.maxIdleTime;
-                        }
-
-                        // Y-axis boundary for sine wave
-                        if (fish.y <= 0 || fish.y + fish.element.offsetHeight >= containerHeight) {
-                            fish.offsetY = Math.max(0, Math.min(fish.y, containerHeight - fish.element.offsetHeight));
-                            fish.amplitude *= -1; // Reverse sine wave
-                        }
-                    }
-
-                    // Apply updated transform
-                    EntityManager.applyEntityTransform(fish);
-                });
-            };
-
-            const spawnBubble = () => {
-                const bubble = document.createElement('div');
-                bubble.className = 'bubble';
-                const size = Math.random() * 10 + 5; // 5 to 15px
-                const startX = Math.random() * aquariumContainer.clientWidth;
-                const duration = Math.random() * 10 + 5; // 5 to 15 seconds
-                const delay = Math.random() * 2; // 0 to 2 seconds delay
-                const drift = Math.random() * 40 - 20; // -20 to 20px horizontal drift
-
-                bubble.style.width = `${size}px`;
-                bubble.style.height = `${size}px`;
-                bubble.style.left = `${startX}px`;
-                bubble.style.bottom = `-20px`; // Start below viewport
-                bubble.style.animationDuration = `${duration}s`;
-                bubble.style.animationDelay = `${delay}s`;
-                bubble.style.setProperty('--bubble-scale', Math.random() * 0.5 + 0.7); // Scale variation
-                bubble.style.setProperty('--bubble-drift', `${drift}px`); // Horizontal drift
-
-                bubbleContainer.appendChild(bubble);
-                bubbleCount++;
-
-                // Remove old bubbles to prevent DOM bloat
-                if (bubbleCount > 200) { // Keep max 200 bubbles
-                    bubbleContainer.removeChild(bubbleContainer.firstElementChild);
-                    bubbleCount--;
-                }
-            };
-
-            return {
-                init
-            };
+            return { init };
         })();
 
+
         // --- Main Application Initialization ---
-        // Ensure all assets are loaded before initializing game modules.
         document.addEventListener('DOMContentLoaded', async () => {
-            try {
-                await AssetManager.loadAllAssets();
-                console.log('All assets loaded successfully!');
+            await AssetManager.loadAllAssets(); // Preload all assets
 
-                UIController.init();
-                InputHandler.init();
-                AnimationEngine.init();
+            UIController.init();
+            AnimationEngine.init(); // Start game loop
 
-                // Initial load of aquarium state
-                InputHandler.loadAquarium();
-
-                // Start background music (will likely require user interaction to play due to autoplay policies)
-                const music = UIController.getElements().backgroundMusic;
-                music.volume = 0.3; // Set a default volume
-                if (localStorage.getItem('musicMuted') === 'true') {
-                    music.muted = true;
-                    UIController.getElements().musicToggleBtn.classList.remove('active');
-                    UIController.getElements().musicToggleBtn.innerHTML = '<span class="icon">🔇</span> Music OFF';
-                } else {
-                    music.muted = false; // Ensure it's not muted if user previously unmuted
-                    music.play().catch(e => console.log('Music autoplay prevented:', e));
+            // Initial fish population (add a few default fish if no save state)
+            if (!localStorage.getItem('aquariumState')) {
+                for (let i = 0; i < 3; i++) { // Start with 3 fish
+                    const defaultFishAsset = ASSET_CONFIG.fish[0];
+                    if (defaultFishAsset) {
+                        EntityManager.createItem(defaultFishAsset, 'fish');
+                    }
                 }
-
-            } catch (error) {
-                console.error('Failed to load assets or initialize application:', error);
-                UIController.showToast('Failed to load aquarium assets!', 'error', 10000);
+            } else {
+                InputHandler.loadAquariumState(); // Attempt to load saved state
             }
         });
-
-        // Basic persistence versioning (optional)
-        const APP_VERSION = '1.0.0';
-        if (localStorage.getItem('appVersion') !== APP_VERSION) {
-            console.log(`Aquarium version mismatch. Updating from ${localStorage.getItem('appVersion')} to ${APP_VERSION}`);
-            // Here you would add migration logic if your saved state changes significantly
-            // For now, we'll just update the version and let existing data stay if compatible
-            localStorage.setItem('appVersion', APP_VERSION);
-        }
-
-        // Debug Mode Toggle (optional)
-        window.toggleDebugMode = () => {
-            document.body.classList.toggle('debug-mode');
-            console.log('Debug mode toggled:', document.body.classList.contains('debug-mode'));
-            if (document.body.classList.contains('debug-mode')) {
-                UIController.showToast('Debug Mode ON', 'info');
-            } else {
-                UIController.showToast('Debug Mode OFF', 'info');
-            }
-        };
-        // Add a button or hotkey for this in a real scenario
-        // Example: document.addEventListener('keydown', (e) => { if (e.key === 'D') toggleDebugMode(); });
     </script>
 </body>
 </html>
