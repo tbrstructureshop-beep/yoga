@@ -2,2030 +2,368 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Premium Virtual Aquarium</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sleep Sanctuary Yoga</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;700&display=swap" rel="stylesheet">
+    <!-- Add this line for the favicon/logo -->
+    <link rel="icon" href="../night/picture/yogaLogo.png" type="image/png">
     <style>
-        /* === Root Variables & Global Resets === */
         :root {
-            --glass-bg: rgba(255, 255, 255, 0.15); /* Lighter, more translucent */
-            --glass-border: rgba(255, 255, 255, 0.25);
-            --glass-shadow: rgba(0, 0, 0, 0.15); /* Slightly darker */
-            --glow-color-primary-rgb: 0, 255, 255; /* RGB for dynamic glows */
-            --glow-color-secondary-rgb: 0, 200, 220;
-            --selected-glow: 0 0 10px 5px rgba(var(--glow-color-primary-rgb), 0.7), 0 0 20px 10px rgba(var(--glow-color-primary-rgb), 0.5);
-            --text-color-light: #e0f7fa; /* Light cyan */
-            --text-color-dark: #333;
-            --primary-accent: #00aaff;
-            --secondary-accent: #00bcd4; /* Cyan */
-            --panel-width-desktop: 320px;
-            --panel-width-mobile: 90vw;
-            --padding-base: 15px;
-            --gap-base: 10px;
-            font-size: 16px; /* Base for rem units */
+            --zen-dark: #0f172a;
+            --zen-primary: #818cf8;
+            --zen-accent: #fbbf24;
         }
-
-        *, *::before, *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
         body {
-            font-family: 'Montserrat', sans-serif;
-            margin: 0;
-            overflow: hidden;
-            background-color: #0a192f; /* Dark blue background fallback */
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: default;
-            user-select: none;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            touch-action: none; /* Prevent browser touch actions */
-            color: var(--text-color-light); /* Default text color for body */
+            font-family: 'Nunito', sans-serif;
+            background-color: var(--zen-dark);
+            color: #e2e8f0;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
         }
-
-        /* === Aquarium Background and Overlay === */
-        .aquarium-background {
-            position: absolute;
-            top: 0;
-            left: 0;
+        .pose-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .breathing-circle {
+            animation: breathe 8s infinite ease-in-out;
+        }
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); opacity: 0.2; }
+            50% { transform: scale(1.3); opacity: 0.5; }
+        }
+        .timer-svg { transform: rotate(-90deg); }
+        .progress-ring { transition: stroke-dashoffset 1s linear; }
+        
+        .main-pose-img {
             width: 100%;
-            height: 100%;
-            background-image: url('background/background1.png'); /* Ensure this path is correct */
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            z-index: -2;
-            filter: brightness(0.8) saturate(1.2) blur(1px); /* Subtle enhancement + blur */
-        }
-
-        .aquarium-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at bottom, rgba(0, 70, 150, 0.3) 0%, rgba(0, 0, 0, 0) 70%),
-                        linear-gradient(to top, rgba(0, 100, 200, 0.15) 0%, rgba(0, 10, 30, 0.3) 100%);
-            z-index: -1;
-            pointer-events: none;
-            animation: subtleWaterDistortion 30s linear infinite; /* Water distortion */
-            background-blend-mode: overlay;
-        }
-
-        @keyframes subtleWaterDistortion {
-            0% { background-position: 0% 0%, 0% 0%; }
-            25% { background-position: 10% 5%, 5% 10%; }
-            50% { background-position: 0% 0%, 0% 0%; }
-            75% { background-position: -10% -5%, -5% -10%; }
-            100% { background-position: 0% 0%, 0% 0%; }
-        }
-
-        #aquarium-container {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            overflow: hidden; /* Ensure items don't spill */
-        }
-
-        /* === Draggable Items (Fish & Ornaments) === */
-        .draggable-item {
-            position: absolute;
-            will-change: transform, left, top, filter, opacity;
-            touch-action: none;
-            z-index: 1; /* Default, will be overridden */
-            cursor: grab;
-            transition: box-shadow 0.2s ease-out, transform 0.1s ease-out, filter 0.2s ease-out, opacity 0.3s ease-out;
-            pointer-events: auto;
-        }
-
-        .ornament {
-            transform-origin: bottom center; /* Ornaments scale from bottom */
-            z-index: 1;
-        }
-
-        .fish {
-            transform-origin: center center; /* Fish scale from center */
-            z-index: 2;
-        }
-
-        .draggable-item.dragging {
-            cursor: grabbing;
-            z-index: 1000 !important; /* Force to top when dragging */
-            filter: drop-shadow(0 0 15px rgba(var(--glow-color-primary-rgb), 0.8)); /* Enhanced glow for dragging */
-        }
-
-        .draggable-item.selected {
-            box-shadow: var(--selected-glow);
-            z-index: 500 !important; /* Force to top when selected */
-        }
-
-        .draggable-item img {
-            display: block;
-            width: 100%;
-            height: auto;
-            pointer-events: none; /* Crucial: ensures drag events target the wrapper, not the image */
-            filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3)); /* Subtle shadow for depth */
-        }
-
-        .draggable-item.spawn-animation {
-            opacity: 0;
-            transform: scale(0.5) translate(var(--initial-x), var(--initial-y)); /* Initial state for spawn */
-        }
-        .draggable-item.spawn-active {
-            opacity: 1;
-            transform: scale(var(--target-scale)) translate(var(--target-x), var(--target-y));
-        }
-
-        /* === Item Controls (Delete, Resize, Layer) === */
-        .item-controls {
-            position: absolute;
-            top: -45px; /* Position above the item, increased for thumb-friendliness */
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            padding: 8px 12px;
-            display: flex;
-            gap: 8px; /* Increased gap */
-            box-shadow: 0 4px 15px var(--glass-shadow);
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease-out, transform 0.2s ease-out;
-            z-index: 501; /* Above selected item */
-            white-space: nowrap;
-            touch-action: auto;
-        }
-
-        .draggable-item.selected .item-controls {
-            opacity: 1;
-            pointer-events: auto;
-            transform: translateX(-50%) translateY(-5px); /* Subtle lift */
-        }
-
-        .item-controls button,
-        .item-controls input[type="range"] {
-            background: rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: var(--text-color-light); /* Changed to light for glassmorphism */
-            border-radius: 8px; /* Slightly larger radius */
-            cursor: pointer;
-            font-size: 0.9em;
-            font-weight: 600;
-            transition: all 0.2s ease;
-            touch-action: manipulation;
-            height: 32px; /* Fixed height for consistency */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-        .item-controls button {
-            padding: 0 10px;
-        }
-        .item-controls button.delete-btn {
-            background: #ff4d4d; /* Red for delete */
-            border-color: #ff1a1a;
-            color: white;
-        }
-        .item-controls button.delete-btn:hover {
-            background: #ff6666;
-            box-shadow: 0 0 10px #ff1a1a;
-        }
-
-        .item-controls button:hover {
-            background: rgba(var(--glow-color-primary-rgb), 0.4);
-            color: white; /* Changed to white */
-            transform: translateY(-2px);
-            box-shadow: 0 0 10px rgba(var(--glow-color-primary-rgb), 0.5);
-        }
-        .item-controls button:active {
-            transform: translateY(0);
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
-        }
-
-        .item-controls input[type="range"] {
-            width: 90px; /* Slightly wider slider */
-            -webkit-appearance: none;
-            appearance: none;
-            height: 6px;
-            margin: 0 6px;
-            background: rgba(255, 255, 255, 0.3);
-            outline: none;
-            border-radius: 3px;
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        .item-controls input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 20px; /* Larger thumb */
-            height: 20px; /* Larger thumb */
-            border-radius: 50%;
-            background: var(--primary-accent);
-            cursor: grab;
-            border: 2px solid rgba(255, 255, 255, 0.8);
-            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
-            transition: background 0.2s ease, transform 0.1s ease;
-        }
-        .item-controls input[type="range"]::-webkit-slider-thumb:active {
-            background: var(--secondary-accent);
-            transform: scale(1.1);
-        }
-
-        .item-controls input[type="range"]::-moz-range-thumb {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: var(--primary-accent);
-            cursor: grab;
-            border: 2px solid rgba(255, 255, 255, 0.8);
-            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
-            transition: background 0.2s ease, transform 0.1s ease;
-        }
-        .item-controls input[type="range"]::-moz-range-thumb:active {
-            background: var(--secondary-accent);
-            transform: scale(1.1);
-        }
-
-        /* === Bubbles === */
-        .bubble {
-            position: absolute;
-            background-color: rgba(255, 255, 255, 0.5);
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 0;
-            filter: blur(0.7px); /* Slightly more blur for realism */
-            will-change: transform, opacity;
-            animation: bubble-pulse 3s infinite ease-in-out;
-        }
-        @keyframes bubble-pulse {
-            0% { transform: scale(1); opacity: 0.5; }
-            50% { transform: scale(1.05); opacity: 0.6; }
-            100% { transform: scale(1); opacity: 0.5; }
-        }
-
-
-        /* === UI Panels - Dashboard & Shop === */
-        .ui-panel {
-            position: absolute;
-            background: var(--glass-bg);
-            backdrop-filter: blur(15px); /* Stronger blur */
-            -webkit-backdrop-filter: blur(15px);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px; /* More rounded */
-            padding: var(--padding-base);
-            box-shadow: 0 8px 30px var(--glass-shadow);
-            z-index: 100; /* Higher z-index for UI */
-            user-select: none;
-            display: flex;
-            flex-direction: column;
-            gap: var(--gap-base);
-            color: var(--text-color-light);
-            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
-        }
-
-        /* Dashboard (Controls) Panel */
-        #dashboard-panel {
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            flex-direction: row; /* Horizontal layout for desktop dashboard */
-            align-items: center;
-            justify-content: center;
-            padding: 12px 25px; /* More horizontal padding */
-        }
-        #dashboard-panel.hidden {
-            transform: translateX(-50%) translateY(100px);
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        #dashboard-panel .panel-group {
-            display: flex;
-            gap: 15px; /* More space between groups of buttons */
-            margin: 0 10px;
-        }
-        #dashboard-panel button {
-            background: rgba(255, 255, 255, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            color: var(--text-color-light); /* Changed to light for glassmorphism */
-            padding: 12px 20px; /* Larger buttons */
-            border-radius: 12px;
-            cursor: pointer;
-            font-size: 0.95em;
-            font-weight: 700;
-            transition: all 0.2s ease;
-            backdrop-filter: blur(8px);
-            touch-action: manipulation;
-            min-width: 120px; /* Ensure minimum width */
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            display: flex; /* For icon + text alignment */
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        #dashboard-panel button span.icon {
-            font-size: 1.2em; /* Larger icons */
-        }
-
-        #dashboard-panel button:hover {
-            background: rgba(var(--glow-color-secondary-rgb), 0.5);
-            box-shadow: 0 0 15px rgba(var(--glow-color-secondary-rgb), 0.7); /* Neon glow */
-            transform: translateY(-3px); /* More pronounced lift */
-            color: white; /* Ensure text is white on hover */
-        }
-        #dashboard-panel button:active {
-            transform: translateY(0);
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
-        }
-
-        /* Shop Panel */
-        #shop-panel {
-            top: 20px;
-            right: 20px;
-            width: var(--panel-width-desktop);
-            max-height: calc(100vh - 40px);
-            transform: translateX(0); /* Default position */
-            overflow: hidden; /* For inner scrolling */
-        }
-        #shop-panel.hidden {
-            transform: translateX(calc(var(--panel-width-desktop) + 20px)); /* Slide out */
-            opacity: 0;
-            pointer-events: none;
-        }
-        #shop-panel.visible {
-            transform: translateX(0); /* Slide in */
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        #shop-panel h3 {
-            margin: 0 0 var(--gap-base) 0;
-            color: var(--text-color-light);
-            font-family: 'Orbitron', sans-serif; /* Modern font for titles */
-            font-size: 1.3em;
-            text-align: center;
-            font-weight: 700;
-            padding-bottom: var(--gap-base);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .shop-tabs {
-            display: flex;
-            justify-content: center;
-            margin-bottom: var(--gap-base);
-            gap: 5px;
-        }
-        .shop-tabs button {
-            flex-grow: 1;
-            padding: 8px 15px;
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: var(--text-color-light);
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-family: 'Montserrat', sans-serif;
-        }
-        .shop-tabs button.active,
-        .shop-tabs button:hover {
-            background: var(--primary-accent);
-            border-color: var(--primary-accent);
-            color: white;
-            box-shadow: 0 0 12px rgba(0, 170, 255, 0.7); /* Neon glow */
-            transform: translateY(-2px);
-        }
-        .shop-tabs button:active {
-            transform: translateY(0);
-            box-shadow: none;
-        }
-
-        .shop-content {
-            flex-grow: 1;
-            overflow-y: auto; /* Scrollable content area */
-            padding-right: 5px; /* Prevent scrollbar from overlapping content */
-            margin-right: -5px; /* Adjust for padding */
-        }
-
-        .shop-items-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); /* Larger items */
-            gap: var(--gap-base);
-            justify-items: center;
-            align-items: center;
-            padding-bottom: 10px;
-        }
-
-        .shop-item {
-            width: 90px; /* Slightly larger thumbnail size */
-            height: 90px;
-            border: 2px solid transparent;
-            border-radius: 12px;
-            overflow: hidden;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            background-color: rgba(255, 255, 255, 0.05);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            touch-action: manipulation;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            position: relative; /* For hover preview */
-        }
-
-        .shop-item:hover {
-            border-color: var(--primary-accent);
-            box-shadow: 0 0 10px rgba(var(--glow-color-primary-rgb), 0.6);
-            transform: translateY(-3px) scale(1.05);
-        }
-
-        .shop-item img {
-            max-width: 90%;
-            max-height: 90%;
+            height: 280px;
             object-fit: contain;
-            display: block;
-            pointer-events: none;
-            filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3)); /* Subtle shadow for depth */
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5));
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .shop-item:hover .shop-item-preview {
-            opacity: 1;
-            transform: translateY(-10px) scale(1.1); /* Lift and enlarge */
-        }
+        .rest-mode { filter: grayscale(1) opacity(0.3) blur(5px); transform: scale(0.9); }
 
-        .shop-item-preview {
-            position: absolute;
-            bottom: calc(100% + 10px); /* Above the item */
-            left: 50%;
-            transform: translateX(-50%) scale(0.8);
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 10px;
-            padding: 8px;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease, transform 0.3s ease;
-            z-index: 10; /* Ensure it's above other shop items */
-            width: 120px; /* Consistent preview size */
-            height: 120px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
-        .shop-item-preview img {
-            max-width: 100%;
-            max-height: 100%;
-        }
+        #pose-list::-webkit-scrollbar { width: 4px; }
+        #pose-list::-webkit-scrollbar-track { background: transparent; }
+        #pose-list::-webkit-scrollbar-thumb { background: rgba(129, 140, 248, 0.2); border-radius: 10px; }
 
-
-        /* --- Item Preview & Quantity Modal --- */
-        .item-preview-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(5px);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 200;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
-        }
-        .item-preview-modal.visible {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .modal-content {
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            padding: var(--padding-base) calc(var(--padding-base) * 1.5);
-            box-shadow: 0 10px 40px var(--glass-shadow);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: var(--gap-base);
-            max-width: 90vw;
-            max-height: 90vh;
-            text-align: center;
-            position: relative;
-            transform: translateY(20px) scale(0.95);
-            opacity: 0;
-            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
-        }
-        .item-preview-modal.visible .modal-content {
-            transform: translateY(0) scale(1);
-            opacity: 1;
-        }
-
-        .modal-close-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: none;
-            border: none;
-            font-size: 1.5em;
-            color: var(--text-color-light);
-            cursor: pointer;
-            transition: color 0.2s ease;
-        }
-        .modal-close-btn:hover {
-            color: var(--primary-accent);
-        }
-
-        .modal-item-preview-img {
-            max-width: 150px;
-            max-height: 150px;
-            object-fit: contain;
-            margin-bottom: var(--gap-base);
-            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
-        }
-
-        .modal-title {
-            font-size: 1.6em;
-            font-weight: 700;
-            color: var(--text-color-light);
-            margin-bottom: 5px;
-            font-family: 'Orbitron', sans-serif;
-        }
-
-        .modal-quantity-controls {
-            display: flex;
-            align-items: center;
-            gap: var(--gap-base);
-            margin: var(--gap-base) 0;
-        }
-        .modal-quantity-controls button {
-            background: var(--primary-accent);
-            border: none;
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #fff;
             border-radius: 50%;
-            width: 35px;
-            height: 35px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.5em;
-            cursor: pointer;
-            transition: background 0.2s ease, transform 0.1s ease;
-        }
-        .modal-quantity-controls button:hover {
-            background: var(--secondary-accent);
-            transform: scale(1.1);
-        }
-        .modal-quantity-controls button:active {
-            transform: scale(1);
-        }
-        .modal-quantity-input {
-            width: 60px;
-            padding: 8px;
-            border-radius: 8px;
-            border: 1px solid var(--glass-border);
-            background: rgba(255, 255, 255, 0.1);
-            color: var(--text-color-light);
-            text-align: center;
-            font-size: 1.1em;
-            -moz-appearance: textfield; /* Hide arrows in Firefox */
-            appearance: textfield;
-        }
-        .modal-quantity-input::-webkit-outer-spin-button,
-        .modal-quantity-input::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
         }
 
-
-        .modal-add-btn {
-            background: var(--primary-accent);
-            border: none;
-            border-radius: 12px;
-            padding: 12px 30px;
-            color: white;
-            font-size: 1.1em;
-            font-weight: 700;
-            cursor: pointer;
-            transition: background 0.2s ease, transform 0.2s ease;
-            box-shadow: 0 4px 15px rgba(0, 170, 255, 0.4); /* Neon glow */
-        }
-        .modal-add-btn:hover {
-            background: var(--secondary-accent);
-            transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(0, 170, 255, 0.6);
-        }
-        .modal-add-btn:active {
-            transform: translateY(0);
-            box-shadow: none;
-        }
-
-        /* Toggle Shop Button */
-        #toggleShopBtn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: var(--primary-accent);
-            color: white;
-            font-size: 1.8em;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 150; /* Above other UI elements */
-            box-shadow: 0 4px 15px rgba(0, 170, 255, 0.4);
-            transition: all 0.3s ease;
-            border: none;
-            display: none; /* Hidden by default, shown by JS when shop is hidden */
-        }
-        #toggleShopBtn:hover {
-            transform: scale(1.1) rotate(15deg);
-            background: var(--secondary-accent);
-        }
-
-        /* --- Toast Notifications (for feedback) --- */
-        .toast-container {
-            position: fixed;
-            bottom: 120px; /* Above dashboard */
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            z-index: 200;
-            pointer-events: none;
-        }
-        .toast {
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 10px;
-            font-size: 0.9em;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-            opacity: 0;
-            transform: translateY(20px);
-            transition: opacity 0.3s ease, transform 0.3s ease;
-        }
-        .toast.show {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        .toast.success { border-left: 5px solid #00ffaa; }
-        .toast.error { border-left: 5px solid #ff0077; }
-        .toast.info { border-left: 5px solid #00aaff; }
-
-
-        /* === Responsive Adjustments === */
-        @media (max-width: 1024px) {
-            :root {
-                font-size: 15px;
-            }
-            #dashboard-panel button {
-                padding: 10px 15px;
-                font-size: 0.9em;
-                min-width: 100px;
-            }
-            #dashboard-panel .panel-group {
-                gap: 10px;
-            }
-            .item-controls {
-                top: -40px;
-                padding: 6px 10px;
-                gap: 6px;
-                border-radius: 10px;
-            }
-            .item-controls button {
-                padding: 0 8px;
-                height: 28px;
-                font-size: 0.8em;
-            }
-            .item-controls input[type="range"] {
-                width: 70px;
-            }
-            .item-controls input[type="range"]::-webkit-slider-thumb,
-            .item-controls input[type="range"]::-moz-range-thumb {
-                width: 18px;
-                height: 18px;
-            }
-        }
-
-        @media (max-width: 768px) {
-            :root {
-                font-size: 14px;
-            }
-
-            #dashboard-panel {
-                bottom: 15px;
-                left: 10px;
-                right: 10px;
-                width: auto;
-                transform: translateX(0); /* No horizontal transform on mobile */
-                flex-direction: column; /* Vertical layout for mobile dashboard */
-                padding: 15px;
-                gap: var(--gap-base);
-                border-radius: 15px;
-            }
-            #dashboard-panel.hidden {
-                transform: translateY(100%);
-            }
-            #dashboard-panel .panel-group {
-                flex-direction: row;
-                flex-wrap: wrap; /* Allow buttons to wrap */
-                justify-content: center;
-                gap: 8px;
-                margin: 0;
-            }
-            #dashboard-panel button {
-                flex: 1 1 auto; /* Allow buttons to grow/shrink */
-                min-width: unset;
-                max-width: 48%; /* Two buttons per row */
-                font-size: 0.85em;
-                padding: 10px;
-            }
-
-            #shop-panel {
-                top: 10px;
-                right: 10px;
-                width: var(--panel-width-mobile);
-                padding: var(--padding-base);
-                border-radius: 15px;
-                transform: translateX(calc(var(--panel-width-mobile) + 10px)); /* Start hidden */
-            }
-            #shop-panel.hidden {
-                transform: translateX(calc(var(--panel-width-mobile) + 10px));
-            }
-            #shop-panel.visible {
-                transform: translateX(0);
-            }
-
-            #toggleShopBtn {
-                display: flex; /* Show toggle button on mobile */
-            }
-
-            .shop-items-grid {
-                grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
-                gap: 8px;
-            }
-            .shop-item {
-                width: 80px;
-                height: 80px;
-                border-radius: 8px;
-            }
-
-            .modal-content {
-                padding: var(--padding-base);
-            }
-            .modal-title {
-                font-size: 1.4em;
-            }
-            .modal-item-preview-img {
-                max-width: 120px;
-                max-height: 120px;
-            }
-            .modal-add-btn {
-                padding: 10px 25px;
-                font-size: 1em;
-            }
-            .toast-container {
-                bottom: calc(15px + 100px); /* Adjust based on new dashboard height */
-            }
-        }
-
-        @media (max-width: 480px) {
-            #dashboard-panel button {
-                max-width: 100%; /* Stack buttons vertically on very small screens */
-            }
-            #dashboard-panel .panel-group {
-                 flex-direction: column;
-                 width: 100%;
-            }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
-<body>
+<body class="min-h-screen flex flex-col items-center p-4 md:p-8">
 
-    <div class="aquarium-background"></div>
-    <div class="aquarium-overlay"></div>
+    <!-- Background Audio - Corrected GitHub Raw URL -->
+    <audio id="bg-music" loop preload="auto" volume="0">
+        <source src="https://raw.githubusercontent.com/tbrstructureshop-beep/yoga/fe8aefb136b943563b8f6b1e8b7c24225d0b37fd/night/audio/9e00df5b-66c4-474f-af22-d6f1718a6a92.mp3" type="audio/mpeg">
+    </audio>
 
-    <div id="aquarium-container">
-        <!-- Draggable items (ornaments, fish) and bubbles will be injected here by JS -->
-    </div>
+    <div class="max-w-5xl w-full">
+        <!-- Header -->
+        <div class="text-center mb-6 md:mb-10">
+            <h1 class="text-3xl md:text-4xl font-light text-indigo-300 tracking-widest uppercase mb-1">Sleep Sanctuary</h1>
+            <p class="text-slate-500 text-sm">Gentle Flow • Nightly Restoration</p>
+        </div>
 
-    <!-- UI Dashboard Panel -->
-    <div id="dashboard-panel" class="ui-panel">
-        <div class="panel-group">
-            <button id="playMusicBtn" title="Toggle Background Music"><span class="icon">🎵</span> Music</button>
-            <button id="toggleBubblesBtn" title="Toggle Bubbles"><span class="icon">🫧</span> Bubbles</button>
-        </div>
-        <div class="panel-group">
-            <button id="saveStateBtn" title="Save Aquarium Layout"><span class="icon">💾</span> Save</button>
-            <button id="loadStateBtn" title="Load Aquarium Layout"><span class="icon">📂</span> Load</button>
-        </div>
-        <div class="panel-group">
-            <button id="resetAquariumBtn" title="Reset Aquarium (Delete All Items)" style="background: rgba(255, 0, 0, 0.3); border-color: rgba(255, 0, 0, 0.5);"><span class="icon">🗑️</span> Reset</button>
-        </div>
-    </div>
+        <div class="grid grid-cols-1 lg:col-span-12 gap-6">
+            <!-- Left Side: Interactive Player -->
+            <div class="lg:col-span-8 pose-card rounded-[40px] p-6 md:p-10 flex flex-col items-center text-center relative overflow-hidden">
+                
+                <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div id="glow-circle" class="breathing-circle w-80 h-80 bg-indigo-600 rounded-full blur-[80px]"></div>
+                </div>
 
-    <!-- UI Shop Panel -->
-    <div id="shop-panel" class="ui-panel">
-        <h3>Aquarium Shop</h3>
-        <div class="shop-tabs">
-            <button id="tabFish" class="active">Fish</button>
-            <button id="tabOrnaments">Ornaments</button>
-        </div>
-        <div class="shop-content">
-            <div id="fishShopItems" class="shop-items-grid active">
-                <!-- Fish shop items will be generated here by JS -->
+                <div class="relative z-10 w-full flex flex-col items-center">
+                    
+                    <!-- Image Display Area -->
+                    <div class="mb-6 w-full h-64 md:h-72 flex items-center justify-center">
+                        <img id="pose-display" src="picture/yoga1.png" alt="Yoga Movement" class="main-pose-img">
+                    </div>
+
+                    <!-- Timer Circle -->
+                    <div class="relative inline-flex items-center justify-center mb-8">
+                        <svg class="timer-svg w-40 h-40 md:w-48 md:h-48">
+                            <circle class="text-slate-800" stroke-width="4" stroke="currentColor" fill="transparent" r="75" cx="80" cy="80" md:r="90" md:cx="96" md:cy="96" />
+                            <circle id="progress-bar" class="text-indigo-400 progress-ring" stroke-width="6" stroke-dasharray="565" stroke-dashoffset="0" stroke-linecap="round" stroke="currentColor" fill="transparent" r="75" cx="80" cy="80" md:r="90" md:cx="96" md="cy="96" />
+                        </svg>
+                        <div class="absolute flex flex-col">
+                            <span id="time-left" class="text-5xl md:text-6xl font-light">00</span>
+                            <span class="text-[10px] uppercase tracking-widest text-indigo-400 font-bold">Sec</span>
+                        </div>
+                    </div>
+
+                    <h2 id="pose-title" class="text-2xl md:text-3xl font-bold text-white mb-1 tracking-tight">Ready to Begin?</h2>
+                    <p id="pose-subtitle" class="text-indigo-300 italic mb-8 text-sm md:text-base">Find a quiet space and take a breath</p>
+                    
+                    <button id="action-btn" onclick="handleAction()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 px-14 rounded-full shadow-[0_10px_40px_rgba(79,70,229,0.4)] transition-all transform active:scale-95 flex items-center justify-center">
+                        <span id="button-text">Start Session</span>
+                        <div id="loading-spinner" class="spinner ml-3 hidden"></div>
+                    </button>
+                </div>
             </div>
-            <div id="ornamentShopItems" class="shop-items-grid hidden">
-                <!-- Ornament shop items will be generated here by JS -->
+
+            <!-- Right Side: Sidebar -->
+            <div class="lg:col-span-4 flex flex-col gap-5">
+                <div class="pose-card rounded-[30px] p-5">
+                    <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-3">Next Movement</p>
+                    <div id="preview-box" class="flex items-center gap-4 opacity-50">
+                        <div class="w-14 h-14 rounded-2xl bg-slate-900 flex items-center justify-center overflow-hidden border border-white/5">
+                            <img id="next-img" src="picture/yoga2.png" class="w-full h-full object-cover">
+                        </div>
+                        <div>
+                            <p id="next-name" class="font-bold text-white">Hero Pose</p>
+                            <p id="next-status" class="text-xs text-indigo-400">Waiting...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="pose-card rounded-[30px] p-6 flex-grow">
+                    <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-4">Your Sequence</p>
+                    <div id="pose-list" class="space-y-4 overflow-y-auto max-h-[300px] pr-2">
+                        <!-- JS Generated -->
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-
-    <!-- Toggle Shop Button (Mobile Only) -->
-    <button id="toggleShopBtn">🛒</button>
-
-    <!-- Item Preview and Quantity Modal -->
-    <div id="itemPreviewModal" class="item-preview-modal">
-        <div class="modal-content">
-            <button class="modal-close-btn">&times;</button>
-            <h4 class="modal-title">Add <span id="modalItemName"></span></h4>
-            <img id="modalItemPreview" class="modal-item-preview-img" alt="Item preview">
-
-            <div class="modal-quantity-controls">
-                <button id="quantityMinus">-</button>
-                <input type="number" id="modalQuantityInput" class="modal-quantity-input" value="1" min="1" max="10">
-                <button id="quantityPlus">+</button>
-            </div>
-            <button id="modalAddBtn" class="modal-add-btn">Add to Aquarium</button>
-        </div>
-    </div>
-
-    <!-- Toast Notification Container -->
-    <div class="toast-container" id="toastContainer"></div>
-
-    <!-- Looped background music -->
-    <audio id="backgroundMusic" src="838fc208-2aa9-407e-ae4a-f7178acb7e65.mp3" loop></audio>
 
     <script>
-        // --- Core Configuration (Updated with more properties for game logic) ---
-        const ASSET_CONFIG = {
-            fish: [
-                { id: 'fish1', src: 'fish/fish1.png', name: 'Clownfish', baseWidth: 80, baseHeight: 60, speed: { min: 0.5, max: 2.5 }, scaleRange: [0.7, 1.3], depthEffect: true, rotation: 10 },
-                { id: 'fish2', src: 'fish/fish2.png', name: 'Blue Tang', baseWidth: 90, baseHeight: 70, speed: { min: 0.7, max: 3.0 }, scaleRange: [0.6, 1.2], depthEffect: true, rotation: 8 },
-                { id: 'fish3', src: 'fish/fish3.png', name: 'Angelfish', baseWidth: 100, baseHeight: 80, speed: { min: 0.4, max: 2.0 }, scaleRange: [0.8, 1.4], depthEffect: true, rotation: 12 }
-            ],
-            ornaments: [
-                { id: 'ornament1', src: 'ornamen/ornamen1.png', name: 'Coral Branch', baseWidth: 120, baseHeight: 100, scaleRange: [0.8, 1.5], isFixed: true },
-                { id: 'ornament2', src: 'ornamen/ornamen2.png', name: 'Seaweed', baseWidth: 80, baseHeight: 150, scaleRange: [0.7, 1.2], isFixed: true },
-                { id: 'ornament3', src: 'ornamen/ornamen3.png', name: 'Treasure Chest', baseWidth: 100, baseHeight: 80, scaleRange: [0.9, 1.1], isFixed: true },
-                { id: 'ornament4', src: 'ornamen/ornamen4.png', name: 'Volcano', baseWidth: 150, baseHeight: 120, scaleRange: [1.0, 1.8], isFixed: true }
-            ],
-            background: 'background/background1.png', // Main background
-            music: '838fc208-2aa9-407e-ae4a-f7178acb7e65.mp3' // Background music
-        };
+        const poses = [
+            { id: 1, name: "Hero Pose", s: "Virasana", d: 60, img: "picture/yoga1.png" },
+            { id: 2, name: "Child's Pose", s: "Balasana", d: 60, img: "picture/yoga2.png" },
+            { id: 3, name: "Upward Dog", s: "Urdhva Mukha Svanasana", d: 60, img: "picture/yoga3.png" },
+            { id: 4, name: "Camel Pose", s: "Ustrasana", d: 60, img: "picture/yoga4.png" },
+            { id: 5, name: "Butterfly Pose", s: "Baddha Konasana", d: 60, img: "picture/yoga5.png" },
+            { id: 6, name: "Supine Spinal Twist", s: "Supta Matsyendrasana", d: 60, img: "picture/yoga6.png" },
+            { id: 7, name: "Bridge Pose", s: "Setu Bandha Sarvangasana", d: 60, img: "picture/yoga7.png" },
+            { id: 8, name: "Wind-Relieving Pose", s: "Pawanmuktasana", d: 60, img: "picture/yoga8.png" },
+            { id: 9, name: "Corpse Pose", s: "Savasana", d: 90, img: "picture/yoga9.png" }
+        ];
 
-        const GAME_SETTINGS = {
-            MAX_FISH: 15,
-            MAX_ORNAMENTS: 25,
-            FISH_IDLE_DURATION: [1000, 3000], // ms
-            FISH_VERTICAL_AMPLITUDE: [20, 50], // px
-            FISH_VERTICAL_FREQUENCY: [0.0005, 0.0015], // for sine wave in pixels per ms
-            FISH_DEPTH_BLUR_MAX: 3, // Max blur in px
-            FISH_DEPTH_SCALE_RANGE: [0.7, 1.2], // How much depth affects fish size
-            ITEM_BOUNDARY_PADDING: 20, // px from edge
-            SPAWN_ANIMATION_DURATION: 300, // ms
-            PERSISTENCE_VERSION: '1.0.1' // For managing save data changes
-        };
+        let currentIndex = 0;
+        let timeLeft = 0;
+        let timer = null;
+        let sessionActive = false;
+        let isResting = false;
+        const REST_TIME = 15;
+        const MUSIC_VOLUME = 0.1; // Adjust this value for desired background music volume
+        const FADE_DURATION = 1000; // 1 second fade
 
-        // --- DOM References ---
-        // Grouped for cleaner access
-        const DOM = {
-            aquariumContainer: document.getElementById('aquarium-container'),
-            dashboardPanel: document.getElementById('dashboard-panel'),
-            shopPanel: document.getElementById('shop-panel'),
-            toggleShopBtn: document.getElementById('toggleShopBtn'),
-            playMusicBtn: document.getElementById('playMusicBtn'),
-            toggleBubblesBtn: document.getElementById('toggleBubblesBtn'),
-            saveStateBtn: document.getElementById('saveStateBtn'),
-            loadStateBtn: document.getElementById('loadStateBtn'),
-            resetAquariumBtn: document.getElementById('resetAquariumBtn'), // New reset button
-            fishShopItemsDiv: document.getElementById('fishShopItems'),
-            ornamentShopItemsDiv: document.getElementById('ornamentShopItems'),
-            tabFish: document.getElementById('tabFish'),
-            tabOrnaments: document.getElementById('tabOrnaments'),
-            backgroundMusic: document.getElementById('backgroundMusic'),
-            itemPreviewModal: document.getElementById('itemPreviewModal'),
-            modalCloseBtn: document.querySelector('#itemPreviewModal .modal-close-btn'),
-            modalItemName: document.getElementById('modalItemName'),
-            modalItemPreview: document.getElementById('modalItemPreview'),
-            quantityMinusBtn: document.getElementById('quantityMinus'),
-            quantityPlusBtn: document.getElementById('quantityPlus'),
-            modalQuantityInput: document.getElementById('modalQuantityInput'),
-            modalAddBtn: document.getElementById('modalAddBtn'),
-            toastContainer: document.getElementById('toastContainer'),
-            aquariumBackground: document.querySelector('.aquarium-background')
-        };
+        const synth = window.speechSynthesis;
+        const bgMusic = document.getElementById('bg-music');
+        const actionButton = document.getElementById('action-btn');
+        const buttonText = document.getElementById('button-text');
+        const loadingSpinner = document.getElementById('loading-spinner');
 
-        // --- Global State (minimized) ---
-        let currentGameState = {
-            isMusicPlaying: false,
-            bubblesEnabled: true,
-            selectedItem: null, // Currently selected DraggableItem instance
-            currentShopTab: 'fish', // 'fish' or 'ornaments'
-            modalSelectedItem: null, // The asset object from ASSET_CONFIG for the item in modal
-            animationFrameId: null, // For requestAnimationFrame management
-            itemsToSpawn: [] // Queue for items to be spawned with animation
-        };
+        function showSpinner() {
+            buttonText.classList.add('hidden');
+            loadingSpinner.classList.remove('hidden');
+            actionButton.disabled = true;
+        }
 
-        // --- Utility Functions ---
-        const Utils = (() => {
-            function getRandom(min, max) {
-                return Math.random() * (max - min) + min;
-            }
+        function hideSpinner() {
+            buttonText.classList.remove('hidden');
+            loadingSpinner.classList.add('hidden');
+            actionButton.disabled = false;
+        }
 
-            function debounce(func, delay) {
-                let timeout;
-                return function(...args) {
-                    const context = this;
-                    clearTimeout(timeout);
-                    timeout = setTimeout(() => func.apply(context, args), delay);
+        function speak(text) {
+            return new Promise((resolve) => {
+                synth.cancel();
+                const msg = new SpeechSynthesisUtterance(text);
+                msg.rate = 0.85;
+                msg.lang = 'en-US';
+                msg.onend = () => {
+                    resolve();
                 };
+                synth.speak(msg);
+            });
+        }
+
+        function fadeInMusic(audioElement, targetVolume, duration) {
+            if (audioElement.paused) {
+                audioElement.play();
+                audioElement.volume = 0; // Ensure it starts from silent
             }
-
-            return { getRandom, debounce };
-        })();
-
-        // --- Module: AssetManager ---
-        // Handles loading and providing asset data.
-        const AssetManager = (() => {
-            const assetsCache = new Map();
-
-            async function loadImage(src) {
-                if (assetsCache.has(src)) {
-                    return assetsCache.get(src);
+            let volume = audioElement.volume;
+            const step = (targetVolume - volume) / (duration / 50); // adjust 50ms interval for smoother fade
+            const fadeInterval = setInterval(() => {
+                if (volume < targetVolume) {
+                    volume += step;
+                    audioElement.volume = Math.min(volume, targetVolume);
+                } else {
+                    clearInterval(fadeInterval);
+                    audioElement.volume = targetVolume;
                 }
-                return new Promise((resolve, reject) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        assetsCache.set(src, img);
-                        resolve(img);
-                    };
-                    img.onerror = () => {
-                        console.error(`Failed to load image: ${src}`);
-                        reject(new Error(`Failed to load image: ${src}`));
-                    };
-                    img.src = src;
-                });
-            }
+            }, 50);
+        }
 
-            async function loadAllAssets() {
-                const loadPromises = [];
-                Object.values(ASSET_CONFIG.fish).forEach(f => loadPromises.push(loadImage(f.src)));
-                Object.values(ASSET_CONFIG.ornaments).forEach(o => loadPromises.push(loadImage(o.src)));
-                loadPromises.push(loadImage(ASSET_CONFIG.background));
-                await Promise.all(loadPromises);
-                console.log('All assets preloaded.');
-            }
-
-            function getAssetConfig(id) {
-                // Dynamically find asset across fish/ornaments
-                const fish = ASSET_CONFIG.fish.find(f => f.id === id);
-                if (fish) return { ...fish, type: 'fish' };
-                const ornament = ASSET_CONFIG.ornaments.find(o => o.id === id);
-                if (ornament) return { ...ornament, type: 'ornament' };
-                return null;
-            }
-
-            function getAssetsByType(type) {
-                return ASSET_CONFIG[type];
-            }
-
-            return {
-                loadImage,
-                loadAllAssets,
-                getAssetConfig,
-                getAssetsByType
-            };
-        })();
-
-        // --- Module: UIController ---
-        // Manages all UI elements, panels, modals, and toasts.
-        const UIController = (() => {
-
-            function init() {
-                _setupEventListeners();
-                _generateShopItems(AssetManager.getAssetsByType('fish'), DOM.fishShopItemsDiv, 'fish');
-                _generateShopItems(AssetManager.getAssetsByType('ornaments'), DOM.ornamentShopItemsDiv, 'ornaments');
-                DOM.shopPanel.classList.add('hidden'); // Shop starts hidden
-                _checkMobileView(); // Adjust UI based on initial viewport
-                _setInitialMusicState(); // Set music state based on localStorage
-            }
-
-            function _setupEventListeners() {
-                DOM.tabFish.addEventListener('click', () => switchShopTab('fish'));
-                DOM.tabOrnaments.addEventListener('click', () => switchShopTab('ornaments'));
-                DOM.toggleShopBtn.addEventListener('click', () => toggleShopPanel());
-                DOM.modalCloseBtn.addEventListener('click', () => hideItemPreviewModal());
-                DOM.itemPreviewModal.addEventListener('click', (e) => {
-                    if (e.target === DOM.itemPreviewModal) hideItemPreviewModal();
-                });
-                DOM.quantityMinusBtn.addEventListener('click', () => adjustModalQuantity(-1));
-                DOM.quantityPlusBtn.addEventListener('click', () => adjustModalQuantity(1));
-                DOM.modalQuantityInput.addEventListener('input', (e) => _sanitizeQuantityInput(e.target));
-                DOM.modalAddBtn.addEventListener('click', () => _addItemFromModal());
-
-                // Dashboard buttons
-                DOM.playMusicBtn.addEventListener('click', toggleMusic);
-                DOM.toggleBubblesBtn.addEventListener('click', toggleBubbles);
-                DOM.saveStateBtn.addEventListener('click', InputHandler.saveAquariumState);
-                DOM.loadStateBtn.addEventListener('click', InputHandler.loadAquariumState);
-                DOM.resetAquariumBtn.addEventListener('click', () => {
-                    if (confirm('Are you sure you want to reset the aquarium? All items will be removed.')) {
-                        EntityManager.clearAllItems();
-                        InputHandler.saveAquariumState(); // Save empty state
-                        showToast('Aquarium has been reset!', 'info');
+        function fadeOutMusic(audioElement, targetVolume, duration, shouldPause = false) {
+            let volume = audioElement.volume;
+            const step = (volume - targetVolume) / (duration / 50); // adjust 50ms interval
+            const fadeInterval = setInterval(() => {
+                if (volume > targetVolume) {
+                    volume -= step;
+                    audioElement.volume = Math.max(volume, targetVolume);
+                } else {
+                    clearInterval(fadeInterval);
+                    audioElement.volume = targetVolume;
+                    if (shouldPause) {
+                        audioElement.pause();
+                        audioElement.currentTime = 0; // Reset to start for next session
                     }
-                });
-
-                // Global event for deselecting
-                DOM.aquariumContainer.addEventListener('pointerdown', (e) => {
-                    if (currentGameState.selectedItem && !e.target.closest('.draggable-item')) {
-                        currentGameState.selectedItem.deselect();
-                    }
-                });
-
-                window.addEventListener('resize', Utils.debounce(() => {
-                    _checkMobileView();
-                    EntityManager.repositionItemsForResize(); // Ensure items stay within bounds
-                }, 200));
-            }
-
-            function _setInitialMusicState() {
-                const storedMusicState = localStorage.getItem('isMusicPlaying');
-                if (storedMusicState === 'true') {
-                    DOM.backgroundMusic.play().catch(e => console.log('Music autoplay prevented:', e));
-                    currentGameState.isMusicPlaying = true;
-                    DOM.playMusicBtn.innerHTML = '<span class="icon">🔇</span> Music';
-                } else {
-                    DOM.backgroundMusic.pause();
-                    currentGameState.isMusicPlaying = false;
-                    DOM.playMusicBtn.innerHTML = '<span class="icon">🎵</span> Music';
                 }
-                const storedBubblesState = localStorage.getItem('bubblesEnabled');
-                if (storedBubblesState === 'false') {
-                    currentGameState.bubblesEnabled = false;
-                    DOM.toggleBubblesBtn.innerHTML = '<span class="icon">🫧</span> Bubbles';
-                } else {
-                    currentGameState.bubblesEnabled = true;
-                    DOM.toggleBubblesBtn.innerHTML = '<span class="icon">🫧</span> Bubbles';
-                    EntityManager.enableBubbles();
-                }
+            }, 50);
+        }
+
+        function updateDisplay() {
+            const current = poses[currentIndex];
+            const next = poses[currentIndex + 1];
+            const displayImg = document.getElementById('pose-display');
+
+            if (!isResting) {
+                document.getElementById('pose-title').innerText = current.name;
+                document.getElementById('pose-subtitle').innerText = current.s;
+                displayImg.src = current.img;
+                displayImg.classList.remove('rest-mode');
+                document.getElementById('glow-circle').style.backgroundColor = '#4f46e5';
+                fadeInMusic(bgMusic, MUSIC_VOLUME, FADE_DURATION); // Fade in music when movement starts
+            } else {
+                document.getElementById('pose-title').innerText = "Take a Deep Breath";
+                document.getElementById('pose-subtitle').innerText = "Prepare for " + (next ? next.name : "the end");
+                displayImg.classList.add('rest-mode');
+                document.getElementById('glow-circle').style.backgroundColor = '#10b981';
+                // Fade out music to a very low volume during rest, but don't pause
+                fadeOutMusic(bgMusic, 0.02, FADE_DURATION); 
             }
 
-
-            function _checkMobileView() {
-                if (window.innerWidth <= 768) {
-                    DOM.shopPanel.classList.remove('visible');
-                    DOM.shopPanel.classList.add('hidden'); // Ensure shop is hidden on small screens
-                    DOM.toggleShopBtn.style.display = 'flex'; // Show toggle button
-                } else {
-                    DOM.shopPanel.classList.remove('hidden');
-                    DOM.shopPanel.classList.add('visible'); // Show shop on larger screens
-                    DOM.toggleShopBtn.style.display = 'none'; // Hide toggle button
-                }
+            if (next) {
+                document.getElementById('next-name').innerText = next.name;
+                document.getElementById('next-img').src = next.img;
+                document.getElementById('next-status').innerText = isResting ? "Starting soon..." : "Up Next";
+            } else {
+                document.getElementById('next-name').innerText = "Session End";
+                document.getElementById('next-status').innerText = "Almost there";
             }
+            
+            document.querySelectorAll('.pose-item').forEach((el, idx) => {
+                el.style.opacity = idx === currentIndex ? "1" : "0.3";
+                el.style.borderColor = idx === currentIndex ? "rgba(129, 140, 248, 0.5)" : "transparent";
+            });
+        }
 
-            function _generateShopItems(assets, container, type) {
-                container.innerHTML = '';
-                assets.forEach(asset => {
-                    const shopItem = document.createElement('div');
-                    shopItem.classList.add('shop-item');
-                    shopItem.title = asset.name;
+        function runTimer() {
+            const total = isResting ? REST_TIME : poses[currentIndex].d;
+            const circumference = 565;
 
-                    const img = document.createElement('img');
-                    img.src = asset.src;
-                    img.alt = asset.name;
-                    img.loading = 'lazy'; // Lazy load shop thumbnails
-                    shopItem.appendChild(img);
+            timer = setInterval(() => {
+                timeLeft--;
+                document.getElementById('time-left').innerText = timeLeft;
+                
+                const offset = circumference - (timeLeft / total) * circumference;
+                document.getElementById('progress-bar').style.strokeDashoffset = offset;
 
-                    // Hover preview
-                    const previewDiv = document.createElement('div');
-                    previewDiv.classList.add('shop-item-preview');
-                    const previewImg = document.createElement('img');
-                    previewImg.src = asset.src;
-                    previewDiv.appendChild(previewImg);
-                    shopItem.appendChild(previewDiv);
+                if (timeLeft === 5 && !isResting) speak("Be ready to take a rest.");
+                if (timeLeft === 3 && isResting) speak("Ready in 3, 2, 1.");
 
-
-                    shopItem.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        showItemPreviewModal(asset, type);
-                    });
-                    container.appendChild(shopItem);
-                });
-            }
-
-            function switchShopTab(tabName) {
-                currentGameState.currentShopTab = tabName;
-                DOM.tabFish.classList.toggle('active', tabName === 'fish');
-                DOM.tabOrnaments.classList.toggle('active', tabName === 'ornaments');
-                DOM.fishShopItemsDiv.classList.toggle('hidden', tabName !== 'fish');
-                DOM.ornamentShopItemsDiv.classList.toggle('hidden', tabName !== 'ornaments');
-            }
-
-            function toggleShopPanel() {
-                DOM.shopPanel.classList.toggle('hidden');
-                DOM.shopPanel.classList.toggle('visible');
-            }
-
-            function toggleMusic() {
-                if (currentGameState.isMusicPlaying) {
-                    DOM.backgroundMusic.pause();
-                    DOM.playMusicBtn.innerHTML = '<span class="icon">🎵</span> Music';
-                    localStorage.setItem('isMusicPlaying', 'false');
-                    showToast('Music OFF', 'info');
-                } else {
-                    DOM.backgroundMusic.play().catch(e => console.error("Music play prevented:", e));
-                    DOM.playMusicBtn.innerHTML = '<span class="icon">🔇</span> Music';
-                    localStorage.setItem('isMusicPlaying', 'true');
-                    showToast('Music ON', 'info');
-                }
-                currentGameState.isMusicPlaying = !currentGameState.isMusicPlaying;
-            }
-
-            function toggleBubbles() {
-                currentGameState.bubblesEnabled = !currentGameState.bubblesEnabled;
-                if (currentGameState.bubblesEnabled) {
-                    EntityManager.enableBubbles();
-                    DOM.toggleBubblesBtn.innerHTML = '<span class="icon">🫧</span> Bubbles';
-                } else {
-                    EntityManager.disableBubbles();
-                    DOM.toggleBubblesBtn.innerHTML = '<span class="icon">🫧</span> Bubbles';
-                }
-                localStorage.setItem('bubblesEnabled', currentGameState.bubblesEnabled);
-                showToast(`Bubbles ${currentGameState.bubblesEnabled ? 'Enabled' : 'Disabled'}`);
-            }
-
-            function showItemPreviewModal(asset, type) {
-                currentGameState.modalSelectedItem = { asset: asset, type: type };
-                DOM.modalItemName.textContent = asset.name;
-                DOM.modalItemPreview.src = asset.src;
-                DOM.modalQuantityInput.value = 1;
-
-                const currentCount = type === 'fish' ? EntityManager.fishCount : EntityManager.ornamentCount;
-                const maxAllowed = type === 'fish' ? GAME_SETTINGS.MAX_FISH : GAME_SETTINGS.MAX_ORNAMENTS;
-                const remaining = maxAllowed - currentCount;
-
-                DOM.modalQuantityInput.max = Math.max(0, remaining).toString();
-                DOM.modalQuantityInput.min = '1';
-
-                // Ornament don't have quantity input currently. Always add 1
-                const quantityControls = DOM.itemPreviewModal.querySelector('.modal-quantity-controls');
-                if (type === 'ornament') {
-                    quantityControls.style.display = 'none';
-                    DOM.modalAddBtn.textContent = 'Add to Aquarium';
-                    DOM.modalQuantityInput.value = 1; // Force 1 for ornaments
-                } else {
-                    quantityControls.style.display = 'flex';
-                    DOM.modalAddBtn.textContent = 'Add to Aquarium';
-                }
-
-                DOM.itemPreviewModal.classList.add('visible');
-            }
-
-            function hideItemPreviewModal() {
-                DOM.itemPreviewModal.classList.remove('visible');
-                currentGameState.modalSelectedItem = null;
-            }
-
-            function adjustModalQuantity(delta) {
-                let current = parseInt(DOM.modalQuantityInput.value);
-                let newVal = current + delta;
-                const max = parseInt(DOM.modalQuantityInput.max);
-                newVal = Math.max(1, Math.min(newVal, max));
-                DOM.modalQuantityInput.value = newVal;
-            }
-
-            function _sanitizeQuantityInput(inputElement) {
-                let val = parseInt(inputElement.value);
-                const min = parseInt(inputElement.min);
-                const max = parseInt(inputElement.max);
-
-                if (isNaN(val) || val < min) val = min;
-                if (val > max) val = max;
-                inputElement.value = val;
-            }
-
-            function _addItemFromModal() {
-                if (!currentGameState.modalSelectedItem) return;
-
-                const { asset, type } = currentGameState.modalSelectedItem;
-                const quantity = type === 'fish' ? parseInt(DOM.modalQuantityInput.value) : 1;
-
-                let itemsAdded = 0;
-                for (let i = 0; i < quantity; i++) {
-                    const newItem = EntityManager.createItem(asset, type);
-                    if (newItem) {
-                        itemsAdded++;
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    if (!isResting && currentIndex < poses.length - 1) {
+                        startRest();
+                    } else if (isResting) {
+                        currentIndex++;
+                        startMovement();
                     } else {
-                        showToast(`Max ${type}s reached!`, 'error');
-                        break;
+                        endSession();
                     }
                 }
-
-                if (itemsAdded > 0) {
-                    showToast(`Added ${itemsAdded} ${asset.name}${itemsAdded > 1 ? 's' : ''}!`, 'success');
-                }
-                hideItemPreviewModal();
-            }
-
-            function showToast(message, type = 'info', duration = 3000) {
-                const toast = document.createElement('div');
-                toast.classList.add('toast', type);
-                toast.textContent = message;
-                DOM.toastContainer.appendChild(toast);
-
-                // Force reflow for CSS transition
-                void toast.offsetWidth;
-
-                toast.classList.add('show');
-
-                setTimeout(() => {
-                    toast.classList.remove('show');
-                    toast.addEventListener('transitionend', () => toast.remove());
-                }, duration);
-            }
-
-            return {
-                init,
-                switchShopTab,
-                toggleShopPanel,
-                showItemPreviewModal,
-                hideItemPreviewModal,
-                showToast
-            };
-        })();
-
-        // --- Module: EntityManager ---
-        // Manages all active entities (fish, ornaments, bubbles) in the aquarium.
-        const EntityManager = (() => {
-            let items = []; // All DraggableItem instances
-            let bubbles = []; // All Bubble instances
-
-            function createItem(assetConfig, type) {
-                let newItem = null;
-                const currentCount = type === 'fish' ? items.filter(i => i instanceof Fish).length : items.filter(i => i instanceof Ornament).length;
-                const maxAllowed = type === 'fish' ? GAME_SETTINGS.MAX_FISH : GAME_SETTINGS.MAX_ORNAMENTS;
-
-                if (currentCount >= maxAllowed) {
-                    return null; // Max items of this type reached
-                }
-
-                if (type === 'fish') {
-                    newItem = new Fish(assetConfig);
-                } else if (type === 'ornament') {
-                    newItem = new Ornament(assetConfig);
-                }
-                if (newItem) {
-                    items.push(newItem);
-                    currentGameState.itemsToSpawn.push(newItem); // Add to spawn queue
-                }
-                return newItem;
-            }
-
-            function removeItem(itemToRemove) {
-                items = items.filter(item => item !== itemToRemove);
-                if (currentGameState.selectedItem === itemToRemove) {
-                    currentGameState.selectedItem = null;
-                }
-                itemToRemove.element.classList.add('spawn-animation'); // Re-use animation class for fade out
-                itemToRemove.element.style.opacity = '0';
-                itemToRemove.element.style.transform = `translate(${itemToRemove.x}px, ${itemToRemove.y}px) scale(0.5)`;
-
-                setTimeout(() => itemToRemove.element.remove(), GAME_SETTINGS.SPAWN_ANIMATION_DURATION);
-                UIController.showToast('Item deleted!', 'info');
-            }
-
-            function clearAllItems() {
-                items.forEach(item => item.element.remove());
-                items = [];
-                currentGameState.selectedItem = null;
-            }
-
-            function update(deltaTime) {
-                // Handle item spawning animations
-                const newlySpawned = [];
-                currentGameState.itemsToSpawn = currentGameState.itemsToSpawn.filter(item => {
-                    if (!item._spawnStartTime) {
-                        item._spawnStartTime = performance.now();
-                        // Set initial position for spawn animation
-                        item.element.style.setProperty('--initial-x', `${item.x}px`);
-                        item.element.style.setProperty('--initial-y', `${item.y}px`);
-                        item.element.style.setProperty('--target-scale', item.scale);
-                        item.element.style.setProperty('--target-x', `${item.x}px`);
-                        item.element.style.setProperty('--target-y', `${item.y}px`);
-                    }
-
-                    const elapsed = performance.now() - item._spawnStartTime;
-                    if (elapsed < GAME_SETTINGS.SPAWN_ANIMATION_DURATION) {
-                        item.element.classList.add('spawn-animation');
-                        item.element.classList.add('spawn-active'); // To apply actual transform during animation
-                        return true; // Keep in queue
-                    } else {
-                        item.element.classList.remove('spawn-animation');
-                        item.element.classList.remove('spawn-active');
-                        item.element.style.opacity = '1';
-                        item.applyTransform(); // Ensure final transform is applied
-                        newlySpawned.push(item);
-                        return false; // Remove from queue
-                    }
-                });
-
-                // Update non-dragging items
-                items.forEach(item => {
-                    if (item.update && !item.isDragging && !currentGameState.itemsToSpawn.includes(item)) {
-                        item.update(deltaTime);
-                    }
-                });
-
-                // Update bubbles
-                if (currentGameState.bubblesEnabled) {
-                    bubbles.forEach(bubble => bubble.update(deltaTime));
-                }
-            }
-
-            function enableBubbles() {
-                if (bubbles.length === 0) { // Only create if none exist
-                    for (let i = 0; i < GAME_SETTINGS.BUBBLE_COUNT; i++) {
-                        bubbles.push(new Bubble());
-                    }
-                }
-                bubbles.forEach(b => b.element.style.display = ''); // Show them
-            }
-
-            function disableBubbles() {
-                bubbles.forEach(b => b.element.style.display = 'none'); // Hide them
-            }
-
-            function repositionItemsForResize() {
-                items.forEach(item => {
-                    item.clampPosition();
-                    item.applyTransform();
-                });
-                bubbles.forEach(bubble => bubble.init()); // Re-initialize bubble positions
-            }
-
-            function getAllItems() {
-                return items;
-            }
-
-            function getSelectedOrnaments() {
-                 return items.filter(item => item instanceof Ornament);
-            }
-
-            function getFishCount() {
-                return items.filter(item => item instanceof Fish).length;
-            }
-
-            function getOrnamentCount() {
-                return items.filter(item => item instanceof Ornament).length;
-            }
-
-            return {
-                createItem,
-                removeItem,
-                clearAllItems,
-                update,
-                enableBubbles,
-                disableBubbles,
-                repositionItemsForResize,
-                getAllItems,
-                getFishCount,
-                getOrnamentCount
-            };
-        })();
-
-        // --- Base DraggableItem Class ---
-        class DraggableItem {
-            constructor(asset, className, transformOrigin = 'center center') {
-                this.id = `${asset.id}_${Date.now()}_${Utils.getRandom(0, 999).toFixed(0)}`;
-                this.asset = asset;
-                this.element = document.createElement('div');
-                this.element.classList.add('draggable-item', className);
-                this.element.dataset.id = this.id;
-                this.element.dataset.assetId = asset.id; // Store asset ID for persistence
-                this.element.style.transformOrigin = transformOrigin;
-                DOM.aquariumContainer.appendChild(this.element);
-
-                this.img = document.createElement('img');
-                this.img.src = asset.src;
-                this.img.alt = asset.name;
-                this.element.appendChild(this.img);
-
-                this.controls = this._createControls();
-                this.element.appendChild(this.controls);
-
-                this.x = 0;
-                this.y = 0;
-                this.scale = Utils.getRandom(asset.scaleRange[0], asset.scaleRange[1]);
-                this.isDragging = false;
-                this.offsetX = 0;
-                this.offsetY = 0;
-                this.initialPinchDistance = 0; // For pinch-to-zoom
-
-                this._addEventListeners();
-                this.deselect();
-
-                // Bind event handlers once to ensure 'this' context and correct removal
-                this._onPointerMoveBound = this._onPointerMove.bind(this);
-                this._onPointerUpBound = this._onPointerUp.bind(this);
-
-                // Initial positioning after image loads for accurate dimensions
-                this.img.onload = () => this.initPositionAndSize();
-                if (this.img.complete) { // Handle cached images
-                    this.initPositionAndSize();
-                }
-            }
-
-            _createControls() {
-                const controlsDiv = document.createElement('div');
-                controlsDiv.classList.add('item-controls');
-
-                const deleteBtn = document.createElement('button');
-                deleteBtn.classList.add('delete-btn');
-                deleteBtn.innerHTML = '🗑️';
-                deleteBtn.title = 'Delete Item';
-                deleteBtn.addEventListener('pointerdown', (e) => e.stopPropagation()); // Prevent dragging when pressing delete
-                deleteBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    EntityManager.removeItem(this);
-                });
-                controlsDiv.appendChild(deleteBtn);
-
-                const resizeSlider = document.createElement('input');
-                resizeSlider.type = 'range';
-                resizeSlider.min = this.asset.scaleRange[0].toString();
-                resizeSlider.max = this.asset.scaleRange[1].toString();
-                resizeSlider.step = '0.01';
-                resizeSlider.value = this.scale.toString();
-                resizeSlider.title = 'Resize';
-                resizeSlider.addEventListener('pointerdown', (e) => e.stopPropagation()); // Prevent dragging when interacting with slider
-                resizeSlider.addEventListener('input', (e) => {
-                    this.scale = parseFloat(e.target.value);
-                    this.applyTransform();
-                });
-                controlsDiv.appendChild(resizeSlider);
-
-                const layerUpBtn = document.createElement('button');
-                layerUpBtn.innerHTML = '&#9650;'; // Up arrow
-                layerUpBtn.title = 'Bring Forward';
-                layerUpBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
-                layerUpBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    this.changeZIndex(1);
-                });
-                controlsDiv.appendChild(layerUpBtn);
-
-                const layerDownBtn = document.createElement('button');
-                layerDownBtn.innerHTML = '&#9660;'; // Down arrow
-                layerDownBtn.title = 'Send Backward';
-                layerDownBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
-                layerDownBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    this.changeZIndex(-1);
-                });
-                controlsDiv.appendChild(layerDownBtn);
-
-                return controlsDiv;
-            }
-
-            _addEventListeners() {
-                this.element.addEventListener('pointerdown', this._onPointerDown.bind(this));
-            }
-
-            initPositionAndSize() {
-                const viewportWidth = window.innerWidth;
-                const viewportHeight = window.innerHeight;
-
-                // Set initial size based on asset config
-                this.element.style.width = `${this.asset.baseWidth}px`;
-                this.element.style.height = `${this.asset.baseHeight}px`;
-
-                this.scale = Utils.getRandom(this.asset.scaleRange[0], this.asset.scaleRange[1]);
-                const resizeSlider = this.controls.querySelector('input[type="range"]');
-                if (resizeSlider) resizeSlider.value = this.scale.toString();
-
-                const itemWidth = this.asset.baseWidth * this.scale;
-                const itemHeight = this.asset.baseHeight * this.scale;
-
-                this.x = Utils.getRandom(GAME_SETTINGS.ITEM_BOUNDARY_PADDING, viewportWidth - itemWidth - GAME_SETTINGS.ITEM_BOUNDARY_PADDING);
-                this.y = Utils.getRandom(GAME_SETTINGS.ITEM_BOUNDARY_PADDING, viewportHeight - itemHeight - GAME_SETTINGS.ITEM_BOUNDARY_PADDING);
-
-                this.clampPosition(); // Ensure initial position is within bounds
-                this.applyTransform();
-            }
-
-            clampPosition() {
-                const viewportWidth = window.innerWidth;
-                const viewportHeight = window.innerHeight;
-                const currentWidth = this.asset.baseWidth * this.scale;
-                const currentHeight = this.asset.baseHeight * this.scale;
-
-                this.x = Math.max(GAME_SETTINGS.ITEM_BOUNDARY_PADDING, Math.min(this.x, viewportWidth - currentWidth - GAME_SETTINGS.ITEM_BOUNDARY_PADDING));
-                this.y = Math.max(GAME_SETTINGS.ITEM_BOUNDARY_PADDING, Math.min(this.y, viewportHeight - currentHeight - GAME_SETTINGS.ITEM_BOUNDARY_PADDING));
-            }
-
-            applyTransform() {
-                // To be overridden by subclasses for specific transformations (e.g., fish flipping)
-                this.element.style.transform = `translate(${this.x}px, ${this.y}px) scale(${this.scale})`;
-                // Update z-index dynamically based on Y position for depth
-                if (!this.isDragging) { // Don't change z-index if actively dragging
-                    this.element.style.zIndex = Math.floor(this.y + (this.asset.baseHeight * this.scale) / 2);
-                }
-            }
-
-            select() {
-                EntityManager.getAllItems().forEach(item => item.deselect()); // Deselect any other selected item
-                this.element.classList.add('selected');
-                currentGameState.selectedItem = this;
-            }
-
-            deselect() {
-                this.element.classList.remove('selected');
-                if (currentGameState.selectedItem === this) {
-                    currentGameState.selectedItem = null;
-                }
-            }
-
-            changeZIndex(direction) {
-                const currentZIndex = parseInt(this.element.style.zIndex || 1);
-                const newZIndex = Math.max(1, Math.min(999, currentZIndex + direction * 10)); // Adjust by 10 for noticeable change
-                this.element.style.zIndex = newZIndex;
-                UIController.showToast(`Layer changed to ${newZIndex}`, 'info');
-            }
-
-            _onPointerDown(e) {
-                if (e.button === 2 || e.target.closest('.item-controls')) { // Ignore right-click and clicks on controls
-                    return;
-                }
-                e.preventDefault(); // Prevent default browser actions (e.g., scrolling, image drag)
-                this.element.setPointerCapture(e.pointerId); // Capture pointer events for this element
-
-                this.select();
-                this.isDragging = true;
-                this.element.classList.add('dragging');
-
-                let clientX, clientY;
-                if (e.touches && e.touches.length === 1) { // Single touch for drag
-                    clientX = e.touches[0].clientX;
-                    clientY = e.touches[0].clientY;
-                    this.initialPinchDistance = 0; // Reset for single touch
-                } else if (e.touches && e.touches.length === 2) { // Two touches for pinch-zoom
-                    clientX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-                    clientY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-                    this.initialPinchDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-                } else { // Mouse drag
-                    clientX = e.clientX;
-                    clientY = e.clientY;
-                    this.initialPinchDistance = 0;
-                }
-
-                const rect = this.element.getBoundingClientRect();
-                this.offsetX = clientX - rect.left;
-                this.offsetY = clientY - rect.top;
-
-                this.element.addEventListener('pointermove', this._onPointerMoveBound);
-                this.element.addEventListener('pointerup', this._onPointerUpBound);
-                this.element.addEventListener('pointercancel', this._onPointerUpBound); // Handle cancellations
-                this.element.addEventListener('lostpointercapture', this._onPointerUpBound); // Handle lost capture
-
-                if (this instanceof Fish) {
-                    this.isAutomated = false; // Pause fish animation when dragging
-                }
-            }
-
-            _onPointerMove(e) {
-                if (!this.isDragging) return;
-                e.preventDefault(); // Prevent scrolling on touch devices
-
-                let clientX, clientY;
-                if (e.touches && e.touches.length === 1) { // Single touch: drag
-                    clientX = e.touches[0].clientX;
-                    clientY = e.touches[0].clientY;
-                } else if (e.touches && e.touches.length === 2 && this.initialPinchDistance > 0) { // Two touches: pinch-zoom
-                    const currentDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-                    const scaleFactor = currentDistance / this.initialPinchDistance;
-                    let newScale = this.scale * scaleFactor;
-
-                    newScale = Math.max(this.asset.scaleRange[0], Math.min(newScale, this.asset.scaleRange[1]));
-                    this.scale = newScale;
-                    this.initialPinchDistance = currentDistance; // Update initial distance for next frame
-
-                    const resizeSlider = this.controls.querySelector('input[type="range"]');
-                    if (resizeSlider) resizeSlider.value = this.scale.toString();
-
-                    this.applyTransform();
-                    return; // Skip position update for pinch-zoom
-                } else if (e.touches && e.touches.length > 2) { // More than 2 touches, stop interaction
-                    this._onPointerUp(e);
-                    return;
-                } else { // Mouse move: drag
-                    clientX = e.clientX;
-                    clientY = e.clientY;
-                }
-
-                this.x = clientX - this.offsetX;
-                this.y = clientY - this.offsetY;
-
-                this.clampPosition();
-                this.applyTransform();
-            }
-
-            _onPointerUp(e) {
-                this.isDragging = false;
-                this.element.classList.remove('dragging');
-
-                this.element.removeEventListener('pointermove', this._onPointerMoveBound);
-                this.element.removeEventListener('pointerup', this._onPointerUpBound);
-                this.element.removeEventListener('pointercancel', this._onPointerUpBound);
-                this.element.removeEventListener('lostpointercapture', this._onPointerUpBound);
-
-                // Release pointer capture
-                if (this.element.hasPointerCapture(e.pointerId)) {
-                    this.element.releasePointerCapture(e.pointerId);
-                }
-            }
+            }, 1000);
         }
 
-        // --- Ornament Class ---
-        class Ornament extends DraggableItem {
-            constructor(asset) {
-                super(asset, 'ornament', 'bottom center');
-                this.initPositionAndSize();
-            }
-
-            initPositionAndSize() {
-                const viewportWidth = window.innerWidth;
-                const viewportHeight = window.innerHeight;
-
-                this.element.style.width = `${this.asset.baseWidth}px`;
-                this.element.style.height = `${this.asset.baseHeight}px`;
-
-                this.scale = Utils.getRandom(this.asset.scaleRange[0], this.asset.scaleRange[1]);
-                const resizeSlider = this.controls.querySelector('input[type="range"]');
-                if (resizeSlider) resizeSlider.value = this.scale.toString();
-
-                const itemWidth = this.asset.baseWidth * this.scale;
-                const itemHeight = this.asset.baseHeight * this.scale;
-
-                this.x = Utils.getRandom(GAME_SETTINGS.ITEM_BOUNDARY_PADDING, viewportWidth - itemWidth - GAME_SETTINGS.ITEM_BOUNDARY_PADDING);
-                // Ornaments sit at the bottom, so Y is clamped relative to the bottom
-                this.y = viewportHeight - itemHeight - Utils.getRandom(0, viewportHeight * 0.08) - GAME_SETTINGS.ITEM_BOUNDARY_PADDING;
-
-                this.clampPosition();
-                this.applyTransform();
-            }
-
-            applyTransform() {
-                // Subtle horizontal drift for ornaments
-                const drift = Math.sin(performance.now() * 0.0001) * 5;
-                this.element.style.transform = `translate(${this.x + drift}px, ${this.y}px) scale(${this.scale})`;
-                 // Z-index based on Y position for depth
-                this.element.style.zIndex = Math.floor(this.y + (this.asset.baseHeight * this.scale) / 2);
-            }
+        async function startMovement() {
+            isResting = false;
+            timeLeft = poses[currentIndex].d;
+            await speak(`Begin ${poses[currentIndex].name}.`);
+            updateDisplay(); // This will trigger fadeInMusic
+            runTimer();
         }
 
-        // --- Fish Class ---
-        class Fish extends DraggableItem {
-            constructor(asset) {
-                super(asset, 'fish');
-                this.isAutomated = true; // Fish are automated by default
-                this.direction = Utils.getRandom(0, 1) < 0.5 ? 1 : -1; // 1 for right, -1 for left
-                this.speed = Utils.getRandom(asset.speed.min, asset.speed.max);
-                this.amplitude = Utils.getRandom(GAME_SETTINGS.FISH_VERTICAL_AMPLITUDE[0], GAME_SETTINGS.FISH_VERTICAL_AMPLITUDE[1]);
-                this.frequency = Utils.getRandom(GAME_SETTINGS.FISH_VERTICAL_FREQUENCY[0], GAME_SETTINGS.FISH_VERTICAL_FREQUENCY[1]);
-                this.phase = Utils.getRandom(0, Math.PI * 2); // Start phase for sine wave
-                this.baseY = 0; // Initial Y position for sine wave calculation
-                this.idleTimer = 0;
-                this.isIdling = false;
-                this.rotationTilt = 0; // For subtle rotation
-                this.lastFlipTime = performance.now(); // Track last flip for smoother rotation
-
-                this.initPositionAndSize();
-            }
-
-            initPositionAndSize() {
-                const viewportWidth = window.innerWidth;
-                const viewportHeight = window.innerHeight;
-
-                this.element.style.width = `${this.asset.baseWidth}px`;
-                this.element.style.height = `${this.asset.baseHeight}px`;
-
-                this.scale = Utils.getRandom(this.asset.scaleRange[0], this.asset.scaleRange[1]);
-                const resizeSlider = this.controls.querySelector('input[type="range"]');
-                if (resizeSlider) resizeSlider.value = this.scale.toString();
-
-                const itemWidth = this.asset.baseWidth * this.scale;
-                const itemHeight = this.asset.baseHeight * this.scale;
-
-                // Initial spawn position: either off-screen left or right, based on direction
-                this.x = this.direction === 1 ? -itemWidth : viewportWidth;
-                this.y = Utils.getRandom(viewportHeight * 0.1, viewportHeight * 0.7); // Mid-range vertical spawn
-                this.baseY = this.y; // Set initial base Y for sine wave
-
-                this.clampPosition();
-                this.applyTransform();
-            }
-
-            applyTransform() {
-                const flipScaleX = this.direction === 1 ? 1 : -1;
-                const currentRotation = this.rotationTilt;
-
-                // Depth illusion: scale & blur based on Y position (deeper = smaller/blurrier)
-                const normalizedY = this.y / window.innerHeight; // 0 to 1
-                const minDepthScale = GAME_SETTINGS.FISH_DEPTH_SCALE_RANGE[0];
-                const maxDepthScale = GAME_SETTINGS.FISH_DEPTH_SCALE_RANGE[1];
-                const depthScale = Utils.getRandom(minDepthScale, maxDepthScale) * (1 - normalizedY * 0.5); // Deeper, slightly smaller
-
-                const maxBlur = GAME_SETTINGS.FISH_DEPTH_BLUR_MAX;
-                const blurAmount = maxBlur * (1 - normalizedY); // More blur when shallower
-
-                this.element.style.filter = `blur(${blurAmount}px)`;
-                this.element.style.transform = `translate(${this.x}px, ${this.y}px) scale(${this.scale * depthScale * flipScaleX}, ${this.scale * depthScale}) rotateZ(${currentRotation}deg)`;
-
-                // Z-index based on Y position for depth
-                if (!this.isDragging) {
-                    this.element.style.zIndex = Math.floor(this.y + (this.asset.baseHeight * this.scale) / 2) + 500; // Fish generally higher than ornaments
-                }
-            }
-
-            update(deltaTime) {
-                if (!this.isAutomated || this.isDragging) return;
-
-                const viewportWidth = window.innerWidth;
-                const viewportHeight = window.innerHeight;
-                const itemWidth = this.asset.baseWidth * this.scale;
-                const itemHeight = this.asset.baseHeight * this.scale;
-
-                // Random idle pause
-                if (this.isIdling) {
-                    this.idleTimer -= deltaTime;
-                    if (this.idleTimer <= 0) {
-                        this.isIdling = false;
-                        this.speed = Utils.getRandom(this.asset.speed.min, this.asset.speed.max); // Reset speed
-                        this.direction = Utils.getRandom(0, 1) < 0.5 ? 1 : -1; // Pick new direction
-                        this.lastFlipTime = performance.now(); // Reset flip time
-                    }
-                    this.rotationTilt = 0; // No tilt when idling
-                } else {
-                    // Movement
-                    const moveAmount = this.speed * (deltaTime / 16.66); // Adjust speed based on frame rate
-                    this.x += moveAmount * this.direction;
-                    this.y = this.baseY + Math.sin(this.phase) * this.amplitude;
-                    this.phase += this.frequency * deltaTime;
-
-                    // Apply subtle tilt based on direction and recent flip
-                    const timeSinceFlip = performance.now() - this.lastFlipTime;
-                    const tiltDuration = 500; // ms for tilt animation
-                    if (timeSinceFlip < tiltDuration) {
-                        const progress = timeSinceFlip / tiltDuration;
-                        this.rotationTilt = (this.direction === 1 ? -1 : 1) * this.asset.rotation * Math.sin(progress * Math.PI); // Smooth S-curve tilt
-                    } else {
-                        this.rotationTilt = 0;
-                    }
-
-                    // Horizontal Boundary checks and direction flip
-                    if (this.x + itemWidth >= viewportWidth && this.direction === 1) {
-                        this.direction = -1;
-                        this.isIdling = true;
-                        this.idleTimer = Utils.getRandom(GAME_SETTINGS.FISH_IDLE_DURATION[0], GAME_SETTINGS.FISH_IDLE_DURATION[1]);
-                        this.lastFlipTime = performance.now();
-                    } else if (this.x <= 0 && this.direction === -1) {
-                        this.direction = 1;
-                        this.isIdling = true;
-                        this.idleTimer = Utils.getRandom(GAME_SETTINGS.FISH_IDLE_DURATION[0], GAME_SETTINGS.FISH_IDLE_DURATION[1]);
-                        this.lastFlipTime = performance.now();
-                    }
-
-                    // Vertical boundary clamping for sine wave
-                    const upperYLimit = viewportHeight * 0.05 + GAME_SETTINGS.ITEM_BOUNDARY_PADDING;
-                    const lowerYLimit = viewportHeight * 0.75 - itemHeight - GAME_SETTINGS.ITEM_BOUNDARY_PADDING; // Keep fish above seabed
-
-                    if (this.y < upperYLimit) {
-                        this.baseY = upperYLimit;
-                        this.phase = Math.PI - this.phase; // Reverse sine wave direction
-                    } else if (this.y > lowerYLimit) {
-                        this.baseY = lowerYLimit;
-                        this.phase = Math.PI - this.phase; // Reverse sine wave direction
-                    }
-                }
-
-                this.applyTransform();
-            }
+        async function startRest() {
+            isResting = true;
+            timeLeft = REST_TIME;
+            const next = poses[currentIndex + 1];
+            await speak(`Rest. Next is ${next ? next.name : "the end"}.`); 
+            updateDisplay(); // This will trigger fadeOutMusic to low volume
+            runTimer();
         }
 
-        // --- Bubbles System ---
-        class Bubble {
-            constructor() {
-                this.element = document.createElement('div');
-                this.element.classList.add('bubble');
-                DOM.aquariumContainer.appendChild(this.element);
-                this.init();
-            }
-
-            init() {
-                const viewportWidth = window.innerWidth;
-                const viewportHeight = window.innerHeight;
-
-                this.size = Utils.getRandom(5, 25);
-                this.speed = Utils.getRandom(0.5, 3);
-                this.x = Utils.getRandom(0, viewportWidth - this.size);
-                this.y = viewportHeight + Utils.getRandom(0, 100); // Start below viewport
-                this.opacity = Utils.getRandom(0.3, 0.7);
-
-                this.element.style.width = `${this.size}px`;
-                this.element.style.height = `${this.size}px`;
-                this.element.style.opacity = this.opacity;
-                this.element.style.transform = `translate(${this.x}px, ${this.y}px)`;
-                this.element.style.filter = `blur(${this.size * 0.05}px)`;
-            }
-
-            update(deltaTime) {
-                this.y -= this.speed * (deltaTime / 16.66); // Move up
-                this.x += Math.sin(this.y * 0.005) * 5 * (deltaTime / 16.66); // Subtle side-to-side drift
-
-                this.element.style.transform = `translate(${this.x}px, ${this.y}px)`;
-
-                if (this.y < -this.size) { // Reset if off-screen top
-                    this.init();
-                }
-            }
-
-            remove() {
-                this.element.remove();
-            }
-        }
-
-        // --- Module: InputHandler ---
-        // Manages save/load and general persistence.
-        const InputHandler = (() => {
-
-            function saveAquariumState() {
-                const state = {
-                    version: GAME_SETTINGS.PERSISTENCE_VERSION,
-                    items: EntityManager.getAllItems().map(item => ({
-                        id: item.id, // Persist individual item ID for potential future tracking
-                        assetId: item.asset.id,
-                        type: item instanceof Fish ? 'fish' : 'ornament',
-                        x: item.x,
-                        y: item.y,
-                        scale: item.scale,
-                        // Fish-specific properties
-                        direction: item instanceof Fish ? item.direction : undefined,
-                        isAutomated: item instanceof Fish ? item.isAutomated : undefined,
-                        baseY: item instanceof Fish ? item.baseY : undefined, // For consistent sine wave
-                        phase: item instanceof Fish ? item.phase : undefined,
-                        speed: item instanceof Fish ? item.speed : undefined,
-                        idleTimer: item instanceof Fish ? item.idleTimer : undefined,
-                        isIdling: item instanceof Fish ? item.isIdling : undefined,
-                    })),
-                    musicPlaying: currentGameState.isMusicPlaying,
-                    bubblesEnabled: currentGameState.bubblesEnabled
-                };
+        async function handleAction() {
+            if (!sessionActive) {
+                sessionActive = true;
+                currentIndex = 0;
+                document.getElementById('button-text').innerText = "Reset Session";
+                
+                showSpinner();
+                
                 try {
-                    localStorage.setItem('aquariumState', JSON.stringify(state));
-                    UIController.showToast('Aquarium state saved!', 'success');
+                    // Pre-load music and attempt to play silently immediately
+                    // This is necessary for some browsers to allow later playback
+                    bgMusic.volume = 0;
+                    await bgMusic.play(); 
+
+                    // Wait for speech to complete
+                    await speak(`Starting session. Begin with ${poses[currentIndex].name}.`);
+                    hideSpinner(); 
+                    
+                    startMovement();
                 } catch (e) {
-                    console.error('Failed to save state:', e);
-                    UIController.showToast('Failed to save state!', 'error');
-                }
-            }
-
-            function loadAquariumState() {
-                try {
-                    const savedState = localStorage.getItem('aquariumState');
-                    if (savedState) {
-                        const state = JSON.parse(savedState);
-
-                        // Handle versioning for future compatibility
-                        if (state.version !== GAME_SETTINGS.PERSISTENCE_VERSION) {
-                            UIController.showToast('Old save data detected. Attempting migration.', 'info');
-                            // Implement migration logic here for future versions
-                        }
-
-                        EntityManager.clearAllItems(); // Clear current aquarium
-
-                        state.items.forEach(itemData => {
-                            const assetConfig = AssetManager.getAssetConfig(itemData.assetId);
-                            if (assetConfig) {
-                                let newItem;
-                                if (itemData.type === 'fish') {
-                                    newItem = new Fish(assetConfig);
-                                    newItem.direction = itemData.direction;
-                                    newItem.isAutomated = itemData.isAutomated;
-                                    newItem.baseY = itemData.baseY;
-                                    newItem.phase = itemData.phase;
-                                    newItem.speed = itemData.speed;
-                                    newItem.idleTimer = itemData.idleTimer;
-                                    newItem.isIdling = itemData.isIdling;
-                                } else {
-                                    newItem = new Ornament(assetConfig);
-                                }
-                                newItem.x = itemData.x;
-                                newItem.y = itemData.y;
-                                newItem.scale = itemData.scale;
-                                newItem.applyTransform(); // Apply saved transform immediately
-                                EntityManager.createItem(assetConfig, itemData.type); // Create via EntityManager to re-add to items array
-                                EntityManager.getAllItems().pop().element.remove(); // Remove temporary one, then re-add
-                                EntityManager.getAllItems()[EntityManager.getAllItems().length - 1] = newItem; // Replace with fully loaded item
-                            }
-                        });
-
-                        // Restore global settings
-                        UIController.setMusicState(state.musicPlaying);
-                        UIController.setBubblesState(state.bubblesEnabled);
-
-                        UIController.showToast('Aquarium state loaded!', 'success');
-                    } else {
-                        UIController.showToast('No saved state found!', 'info');
-                    }
-                } catch (e) {
-                    console.error('Failed to load state:', e);
-                    UIController.showToast('Failed to load state!', 'error');
-                }
-            }
-
-            return {
-                saveAquariumState,
-                loadAquariumState
-            };
-        })();
-
-
-        // --- Module: AnimationEngine ---
-        // Manages the main game loop.
-        const AnimationEngine = (() => {
-            let lastTimestamp = 0;
-
-            function init() {
-                DOM.aquariumBackground.style.backgroundImage = `url(${ASSET_CONFIG.background})`;
-                currentGameState.animationFrameId = requestAnimationFrame(animate);
-            }
-
-            function animate(timestamp) {
-                const deltaTime = timestamp - lastTimestamp;
-                lastTimestamp = timestamp;
-
-                EntityManager.update(deltaTime);
-
-                currentGameState.animationFrameId = requestAnimationFrame(animate);
-            }
-
-            return { init };
-        })();
-
-
-        // --- Main Application Initialization ---
-        document.addEventListener('DOMContentLoaded', async () => {
-            await AssetManager.loadAllAssets(); // Preload all assets
-
-            UIController.init();
-            AnimationEngine.init(); // Start game loop
-
-            // Initial fish population (add a few default fish if no save state)
-            if (!localStorage.getItem('aquariumState')) {
-                for (let i = 0; i < 3; i++) { // Start with 3 fish
-                    const defaultFishAsset = ASSET_CONFIG.fish[0];
-                    if (defaultFishAsset) {
-                        EntityManager.createItem(defaultFishAsset, 'fish');
-                    }
+                    console.error("Error during session start (music might not play):", e);
+                    alert("Warning: An issue occurred with audio playback. Music or speech might not be playing. Please check browser settings and ensure media autoplay is allowed. The session will continue without music if playback failed.");
+                    hideSpinner(); // Hide spinner even on error
+                    startMovement(); // Attempt to start movement even if audio failed
                 }
             } else {
-                InputHandler.loadAquariumState(); // Attempt to load saved state
+                location.reload();
             }
+        }
+
+        async function endSession() {
+            // Fade out completely and pause at the end of the session
+            fadeOutMusic(bgMusic, 0, FADE_DURATION * 2, true); // Longer fade out and pause
+            await speak("Session complete. Sleep well.");
+            document.getElementById('pose-title').innerText = "Peaceful Sleep";
+            document.getElementById('pose-subtitle').innerText = "Namaste.";
+            document.getElementById('button-text').innerText = "Restart";
+            sessionActive = false;
+        }
+
+        const listContainer = document.getElementById('pose-list');
+        poses.forEach((p, i) => {
+            listContainer.innerHTML += `
+                <div class="pose-item flex items-center justify-between p-3 rounded-2xl border transition-all duration-500 opacity-30">
+                    <div class="flex items-center gap-3">
+                        <img src="${p.img}" class="w-10 h-10 rounded-lg object-cover">
+                        <div>
+                            <p class="text-xs font-bold text-white">${p.name}</p>
+                            <p class="text-[10px] text-slate-500">${p.s}</p>
+                        </div>
+                    </div>
+                    <span class="text-[10px] font-bold text-indigo-400">${p.d}s</span>
+                </div>
+            `;
         });
     </script>
 </body>
