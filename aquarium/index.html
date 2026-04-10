@@ -28,6 +28,7 @@
             -webkit-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
+            touch-action: none; /* Prevent browser touch actions like pull-to-refresh, pinch-zoom on body */
         }
 
         .aquarium-background {
@@ -59,7 +60,7 @@
             position: absolute;
             width: 100%;
             height: 100%;
-            touch-action: none; /* Prevent browser touch actions like pull-to-refresh */
+            /* touch-action on body should cover this, but explicit can't hurt */
         }
 
         .ornament-wrapper {
@@ -104,15 +105,16 @@
             gap: 5px;
             box-shadow: 0 2px 5px var(--glass-shadow);
             opacity: 0;
-            pointer-events: none;
+            pointer-events: none; /* Controls are not interactive when not selected */
             transition: opacity 0.2s ease-out;
             z-index: 51; /* Above the ornament */
             white-space: nowrap; /* Prevent buttons from wrapping */
+            touch-action: auto; /* Allow interaction with slider/buttons within controls */
         }
 
         .ornament-wrapper.selected .ornament-controls {
             opacity: 1;
-            pointer-events: auto;
+            pointer-events: auto; /* Controls become interactive when selected */
         }
 
         .ornament-controls button, .ornament-controls input[type="range"] {
@@ -124,6 +126,7 @@
             font-size: 0.8em;
             font-weight: bold;
             transition: all 0.1s ease;
+            touch-action: manipulation; /* Optimizes touch for these interactive elements */
         }
         .ornament-controls button {
             padding: 5px 8px;
@@ -150,7 +153,7 @@
             height: 16px;
             border-radius: 50%;
             background: #00aaff;
-            cursor: pointer;
+            cursor: grab; /* Indicate draggable thumb */
             border: 1px solid rgba(0, 0, 0, 0.2);
         }
 
@@ -159,7 +162,7 @@
             height: 16px;
             border-radius: 50%;
             background: #00aaff;
-            cursor: pointer;
+            cursor: grab; /* Indicate draggable thumb */
             border: 1px solid rgba(0, 0, 0, 0.2);
         }
 
@@ -218,6 +221,7 @@
             font-weight: bold;
             transition: all 0.2s ease;
             backdrop-filter: blur(5px); /* Ensure button background is also blurred */
+            touch-action: manipulation; /* Optimize touch for buttons */
         }
 
         .controls-panel button:hover {
@@ -276,6 +280,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            touch-action: manipulation; /* Optimize touch for shop items */
         }
 
         .shop-item:hover {
@@ -288,6 +293,7 @@
             max-height: 90%;
             object-fit: contain;
             display: block;
+            pointer-events: none; /* Images within shop items should not interfere with click */
         }
 
         /* Responsive adjustments */
@@ -341,6 +347,7 @@
     </div>
 
     <div class="controls-panel">
+        <button id="playMusicBtn">Play Music</button> <!-- NEW MUSIC BUTTON -->
         <button id="addFishBtn">Add Fish</button>
         <button id="removeFishBtn">Remove Fish</button>
         <button id="toggleBubblesBtn">Toggle Bubbles</button>
@@ -354,18 +361,18 @@
     </div>
 
     <!-- Looped background music -->
-    <audio id="backgroundMusic" src="838fc208-2aa9-407e-ae4a-f7178acb7e65.mp3" autoplay loop></audio>
+    <audio id="backgroundMusic" src="838fc208-2aa9-407e-ae4a-f7178acb7e65.mp3" loop></audio> <!-- REMOVED AUTOPLAY -->
 
     <script>
         const aquariumContainer = document.getElementById('aquarium-container');
+        const playMusicBtn = document.getElementById('playMusicBtn'); // NEW MUSIC BUTTON REF
         const addFishBtn = document.getElementById('addFishBtn');
         const removeFishBtn = document.getElementById('removeFishBtn');
         const toggleBubblesBtn = document.getElementById('toggleBubblesBtn');
         const shopItemsDiv = document.getElementById('shopItems');
         const backgroundMusic = document.getElementById('backgroundMusic');
 
-        // Paths are relative to the HTML file (index.html), which is inside yoga/aquarium/
-        const ornamentImageSources = [ // Renamed to clearly indicate they are sources
+        const ornamentImageSources = [
             'ornamen/ornamen1.png',
             'ornamen/ornamen2.png',
             'ornamen/ornamen3.png',
@@ -374,7 +381,7 @@
         const fishImage = 'fish/fish1.png';
 
         const maxFish = 10;
-        const maxOrnaments = 20; // Limit total ornaments for performance
+        const maxOrnaments = 20;
 
         let fishCount = 0;
         let fishArray = [];
@@ -382,7 +389,7 @@
         let bubblesArray = [];
         let bubblesEnabled = true;
 
-        let selectedOrnament = null; // Track currently selected ornament
+        let selectedOrnament = null;
 
         // --- Utility Functions ---
         function getRandom(min, max) {
@@ -397,7 +404,7 @@
             };
         }
 
-        // --- Ornament Class (Enhanced) ---
+        // --- Ornament Class ---
         class Ornament {
             constructor(src) {
                 this.src = src;
@@ -413,15 +420,15 @@
                 this.controls = this.createControls();
                 this.element.appendChild(this.controls);
 
-                this.x = 0; // Current x position
-                this.y = 0; // Current y position
-                this.scale = 1; // Current scale factor
+                this.x = 0;
+                this.y = 0;
+                this.scale = 1;
                 this.isDragging = false;
                 this.offsetX = 0;
                 this.offsetY = 0;
 
                 this.addEventListeners();
-                this.deselect(); // Start deselected
+                this.deselect();
 
                 this.initPositionAndSize();
             }
@@ -430,7 +437,6 @@
                 const controlsDiv = document.createElement('div');
                 controlsDiv.classList.add('ornament-controls');
 
-                // Delete Button
                 const deleteBtn = document.createElement('button');
                 deleteBtn.textContent = '❌';
                 deleteBtn.title = 'Delete Ornament';
@@ -440,7 +446,6 @@
                 });
                 controlsDiv.appendChild(deleteBtn);
 
-                // Resize Slider
                 const resizeSlider = document.createElement('input');
                 resizeSlider.type = 'range';
                 resizeSlider.min = '0.5';
@@ -452,7 +457,7 @@
                     this.scale = parseFloat(e.target.value);
                     this.applyTransform();
                 });
-                // Prevent drag from interfering with slider
+                // Crucially, stop propagation on mousedown/touchstart for the slider
                 resizeSlider.addEventListener('mousedown', (e) => e.stopPropagation());
                 resizeSlider.addEventListener('touchstart', (e) => e.stopPropagation());
                 controlsDiv.appendChild(resizeSlider);
@@ -471,38 +476,32 @@
 
                 const baseWidth = getRandom(viewportWidth * 0.12, viewportWidth * 0.28);
                 this.element.style.width = `${baseWidth}px`;
-                this.element.style.height = 'auto'; // Maintain aspect ratio
+                this.element.style.height = 'auto';
 
-                // Use onload to ensure clientHeight is available for initial positioning
-                this.img.onload = () => {
-                    const ornamentHeight = this.img.clientHeight; // Use image height for positioning
+                const applyInitialPosition = () => {
+                    const ornamentHeight = this.img.clientHeight;
                     const ornamentWidth = this.img.clientWidth;
 
-                    this.scale = 1; // Reset scale
+                    this.scale = 1;
                     this.controls.querySelector('input[type="range"]').value = this.scale.toString();
-
 
                     if (initialX !== null && initialY !== null) {
                         this.x = initialX - ornamentWidth / 2;
                         this.y = initialY - ornamentHeight / 2;
                     } else {
-                        // Default to bottom-center for new ornaments
                         this.x = (viewportWidth / 2) - (ornamentWidth / 2);
-                        this.y = viewportHeight - ornamentHeight - (viewportHeight * 0.05); // A bit above bottom
+                        this.y = viewportHeight - ornamentHeight - (viewportHeight * 0.05);
                     }
                     this.applyTransform();
                 };
 
-                // If image is already loaded, execute onload directly
-                if (this.img.complete) {
-                     this.img.onload();
+                this.img.onload = applyInitialPosition;
+                if (this.img.complete) { // If image is already loaded (e.g., from cache)
+                     applyInitialPosition();
                 }
             }
 
             applyTransform() {
-                // We're using absolute positioning (left/top) for initial placement and direct pixel manipulation,
-                // and `transform: scale()` for resizing.
-                // The draggable position should update `this.x` and `this.y`, then `left` and `top`.
                 this.element.style.left = `${this.x}px`;
                 this.element.style.top = `${this.y}px`;
                 this.element.style.transform = `scale(${this.scale})`;
@@ -513,25 +512,30 @@
                     selectedOrnament.deselect();
                 }
                 this.element.classList.add('selected');
-                this.element.style.zIndex = 50; // Bring selected to front
+                this.element.style.zIndex = 50;
                 selectedOrnament = this;
             }
 
             deselect() {
                 this.element.classList.remove('selected');
-                this.element.style.zIndex = 1; // Reset z-index
+                this.element.style.zIndex = 1;
                 if (selectedOrnament === this) {
                     selectedOrnament = null;
                 }
             }
 
             onStartDrag(e) {
+                // Check if the event target is within the controls, if so, don't start dragging the ornament
+                if (e.target.closest('.ornament-controls')) {
+                    return;
+                }
+
                 e.preventDefault(); // Prevent default browser actions (e.g., image drag, scrolling)
-                this.select(); // Select this ornament when interaction starts
+                this.select();
 
                 this.isDragging = true;
                 this.element.classList.add('dragging');
-                this.element.style.zIndex = 100; // Bring to absolute front when dragging
+                this.element.style.zIndex = 100;
 
                 let clientX, clientY;
                 if (e.type === 'touchstart') {
@@ -542,12 +546,10 @@
                     clientY = e.clientY;
                 }
 
-                // Calculate offset from mouse/touch to element's top-left corner
                 const rect = this.element.getBoundingClientRect();
                 this.offsetX = clientX - rect.left;
                 this.offsetY = clientY - rect.top;
 
-                // Add global listeners for dragging
                 document.addEventListener('mousemove', this.onDrag.bind(this));
                 document.addEventListener('mouseup', this.onStopDrag.bind(this));
                 document.addEventListener('touchmove', this.onDrag.bind(this), { passive: false });
@@ -559,6 +561,10 @@
 
                 let clientX, clientY;
                 if (e.type === 'touchmove') {
+                    if (e.touches.length > 1) { // If multiple touches, could be pinch-zoom, stop drag
+                        this.onStopDrag(e);
+                        return;
+                    }
                     clientX = e.touches[0].clientX;
                     clientY = e.touches[0].clientY;
                 } else {
@@ -570,16 +576,20 @@
                 this.y = clientY - this.offsetY;
 
                 // Clamp to boundaries
-                this.x = Math.max(0, Math.min(this.x, window.innerWidth - this.element.clientWidth * this.scale));
-                this.y = Math.max(0, Math.min(this.y, window.innerHeight - this.element.clientHeight * this.scale));
+                const scaledWidth = this.element.clientWidth * this.scale;
+                const scaledHeight = this.element.clientHeight * this.scale;
+                this.x = Math.max(0, Math.min(this.x, window.innerWidth - scaledWidth));
+                this.y = Math.max(0, Math.min(this.y, window.innerHeight - scaledHeight));
 
-                this.applyTransform(); // Update position
+
+                this.applyTransform();
             }
 
             onStopDrag(e) {
                 this.isDragging = false;
                 this.element.classList.remove('dragging');
-                // Don't deselect here, keep it selected for controls
+                this.element.style.zIndex = 50; // Revert to selected z-index
+
                 document.removeEventListener('mousemove', this.onDrag.bind(this));
                 document.removeEventListener('mouseup', this.onStopDrag.bind(this));
                 document.removeEventListener('touchmove', this.onDrag.bind(this));
@@ -598,21 +608,22 @@
 
         // --- Ornament Shop ---
         function generateShopItems() {
-            shopItemsDiv.innerHTML = ''; // Clear previous items
+            shopItemsDiv.innerHTML = '';
             ornamentImageSources.forEach(src => {
                 const shopItem = document.createElement('div');
                 shopItem.classList.add('shop-item');
-                shopItem.title = src.split('/').pop().split('.')[0].replace(/(\d)/, ' $1'); // e.g., "ornamen 1"
+                shopItem.title = src.split('/').pop().split('.')[0].replace(/(\d)/, ' $1');
 
                 const img = document.createElement('img');
                 img.src = src;
                 shopItem.appendChild(img);
 
-                shopItem.addEventListener('click', () => {
+                shopItem.addEventListener('click', (e) => { // Added e for event
+                    e.stopPropagation(); // Prevent deselecting ornament if clicked while selected
                     if (ornamentsArray.length < maxOrnaments) {
                         const newOrnament = new Ornament(src);
                         ornamentsArray.push(newOrnament);
-                        newOrnament.select(); // Select new ornament automatically
+                        newOrnament.select();
                     } else {
                         alert(`Maximum ${maxOrnaments} ornaments reached for performance!`);
                     }
@@ -631,7 +642,7 @@
                 this.img.src = fishImage;
                 this.element.appendChild(this.img);
                 aquariumContainer.appendChild(this.element);
-                this.element.addEventListener('click', this.remove.bind(this)); // Add click listener
+                this.element.addEventListener('click', this.remove.bind(this));
 
                 this.initPositionAndSize();
             }
@@ -640,24 +651,22 @@
                 const viewportWidth = window.innerWidth;
                 const viewportHeight = window.innerHeight;
 
-                this.size = getRandom(viewportWidth * 0.04, viewportWidth * 0.1); // Fish size relative to viewport
-                this.speed = getRandom(0.5, 2); // Pixels per frame
-                this.amplitude = getRandom(viewportHeight * 0.01, viewportHeight * 0.03); // Vertical sine wave amplitude
-                this.frequency = getRandom(0.02, 0.05); // Vertical sine wave frequency
-                this.phase = getRandom(0, Math.PI * 2); // Starting phase for sine wave
+                this.size = getRandom(viewportWidth * 0.04, viewportWidth * 0.1);
+                this.speed = getRandom(0.5, 2);
+                this.amplitude = getRandom(viewportHeight * 0.01, viewportHeight * 0.03);
+                this.frequency = getRandom(0.02, 0.05);
+                this.phase = getRandom(0, Math.PI * 2);
 
                 this.element.style.width = `${this.size}px`;
 
-                this.direction = Math.random() < 0.5 ? 1 : -1; // 1 for right, -1 for left
-                // Start off-screen
+                this.direction = Math.random() < 0.5 ? 1 : -1;
                 this.x = this.direction === 1 ? -this.size : viewportWidth;
-                this.y = getRandom(viewportHeight * 0.1, viewportHeight * 0.7); // Y position (avoiding bottom for ornaments)
+                this.y = getRandom(viewportHeight * 0.1, viewportHeight * 0.7);
 
                 this.updateTransform();
             }
 
             updateTransform() {
-                // Apply horizontal flip based on direction
                 this.img.style.transform = `scaleX(${this.direction})`;
                 this.element.style.left = `${this.x}px`;
                 this.element.style.top = `${this.y}px`;
@@ -667,30 +676,25 @@
                 const viewportWidth = window.innerWidth;
                 const viewportHeight = window.innerHeight;
 
-                // Horizontal movement
                 this.x += this.speed * this.direction;
-
-                // Vertical sine wave movement
-                this.y += Math.sin(this.phase) * this.amplitude * 0.1; // Slower vertical drift
+                this.y += Math.sin(this.phase) * this.amplitude * 0.1;
                 this.phase += this.frequency;
 
-                // Check for screen exit and re-entry
                 if (this.direction === 1 && this.x > viewportWidth) {
-                    this.x = -this.size; // Re-enter from left
-                    this.y = getRandom(viewportHeight * 0.1, viewportHeight * 0.7); // New random Y
-                    this.direction *= -1; // Flip direction for a more natural re-entry
-                    this.img.style.transform = `scaleX(${this.direction})`; // Apply flip immediately
+                    this.x = -this.size;
+                    this.y = getRandom(viewportHeight * 0.1, viewportHeight * 0.7);
+                    this.direction *= -1;
+                    this.img.style.transform = `scaleX(${this.direction})`;
                 } else if (this.direction === -1 && this.x < -this.size) {
-                    this.x = viewportWidth; // Re-enter from right
-                    this.y = getRandom(viewportHeight * 0.1, viewportHeight * 0.7); // New random Y
-                    this.direction *= -1; // Flip direction for a more natural re-entry
-                    this.img.style.transform = `scaleX(${this.direction})`; // Apply flip immediately
+                    this.x = viewportWidth;
+                    this.y = getRandom(viewportHeight * 0.1, viewportHeight * 0.7);
+                    this.direction *= -1;
+                    this.img.style.transform = `scaleX(${this.direction})`;
                 }
 
-                // If fish is too high or low, reverse vertical direction or clamp
-                if (this.y < viewportHeight * 0.05 || this.y > viewportHeight * 0.75 - this.size) { // Keep above ornaments
-                    this.phase = -this.phase; // Reverse vertical movement
-                    this.y = Math.max(viewportHeight * 0.05, Math.min(this.y, viewportHeight * 0.75 - this.size)); // Clamp to bounds
+                if (this.y < viewportHeight * 0.05 || this.y > viewportHeight * 0.75 - this.size) {
+                    this.phase = -this.phase;
+                    this.y = Math.max(viewportHeight * 0.05, Math.min(this.y, viewportHeight * 0.75 - this.size));
                 }
 
                 this.updateTransform();
@@ -714,7 +718,7 @@
         function removeFish() {
             if (fishArray.length > 0) {
                 const fishToRemove = fishArray.pop();
-                fishToRemove.remove(); // Use the class's remove method
+                fishToRemove.remove();
             }
         }
 
@@ -732,10 +736,10 @@
                 const viewportWidth = window.innerWidth;
                 const viewportHeight = window.innerHeight;
 
-                this.size = getRandom(5, 20); // Static size for bubbles, they are small
+                this.size = getRandom(5, 20);
                 this.speed = getRandom(0.5, 2);
                 this.x = getRandom(0, viewportWidth - this.size);
-                this.y = viewportHeight + getRandom(0, 100); // Start slightly below screen
+                this.y = viewportHeight + getRandom(0, 100);
                 this.opacity = getRandom(0.3, 0.7);
 
                 this.element.style.width = `${this.size}px`;
@@ -743,7 +747,7 @@
                 this.element.style.opacity = this.opacity;
                 this.element.style.left = `${this.x}px`;
                 this.element.style.top = `${this.y}px`;
-                this.element.style.filter = `blur(${this.size * 0.05}px)`; // Dynamic blur
+                this.element.style.filter = `blur(${this.size * 0.05}px)`;
             }
 
             move() {
@@ -751,14 +755,11 @@
                 const viewportHeight = window.innerHeight;
 
                 this.y -= this.speed;
-                // Slight horizontal drift using sine wave
                 this.element.style.left = `${this.x + Math.sin(this.y * 0.05) * 5}px`;
                 this.element.style.top = `${this.y}px`;
 
-
-                // Re-enter from bottom when exiting top
                 if (this.y < -this.size) {
-                    this.initBubble(); // Re-initialize all properties for a new bubble cycle
+                    this.initBubble();
                 }
             }
 
@@ -794,25 +795,16 @@
             const deltaTime = timestamp - lastTimestamp;
             lastTimestamp = timestamp;
 
-            // Ornaments (only subtle drift, drag/resize is handled by event listeners)
             ornamentsArray.forEach(ornament => {
-                 if (!ornament.isDragging) { // Only apply drift if not being dragged
+                 if (!ornament.isDragging) {
                     const drift = Math.sin(timestamp * 0.0001) * 5;
-                    // Apply drift by adjusting X coordinate slightly, then re-applying transform
-                    // Note: This approach directly modifies x, then applies transform.
-                    // If using CSS transform for movement, this would be `element.style.transform += translateX(...)`.
-                    // For simplicity with drag, we're keeping `x` and `y` for absolute positioning.
-                    // This drift is more complex when combined with absolute positioning and transforms for drag.
-                    // Let's simplify: only apply a subtle visual wiggle via CSS transform for non-dragging.
-                    // The core position (x,y) should remain absolute for drag.
+                    // Apply drift in addition to scale
                     ornament.element.style.transform = `scale(${ornament.scale}) translateX(${drift}px)`;
                  }
             });
 
-            // Animate fish
             fishArray.forEach(fish => fish.move());
 
-            // Animate bubbles
             if (bubblesEnabled) {
                 bubblesArray.forEach(bubble => bubble.move());
             }
@@ -821,7 +813,6 @@
         }
 
         // --- Global Deselect Listener ---
-        // Click anywhere on aquarium to deselect ornament
         aquariumContainer.addEventListener('click', (e) => {
             if (selectedOrnament && !e.target.closest('.ornament-wrapper')) {
                 selectedOrnament.deselect();
@@ -829,41 +820,38 @@
         });
 
         // --- Event Listeners ---
+        playMusicBtn.addEventListener('click', () => { // NEW: Play music on button click
+            backgroundMusic.play().catch(e => console.log("Music play prevented:", e));
+        });
         addFishBtn.addEventListener('click', addFish);
         removeFishBtn.addEventListener('click', removeFish);
         toggleBubblesBtn.addEventListener('click', toggleBubbles);
 
         // --- Initialization ---
         window.onload = () => {
-            backgroundMusic.play().catch(e => console.log("Autoplay prevented:", e));
+            // No autoplay here, it's now tied to the button click
+            generateShopItems();
 
-            generateShopItems(); // Populate the shop
-
-            // Initial ornaments (optional, can start with none)
-            // for(let i = 0; i < 3; i++) {
-            //     if (ornamentImageSources[i]) {
-            //         const newOrnament = new Ornament(ornamentImageSources[i]);
-            //         ornamentsArray.push(newOrnament);
-            //     }
-            // }
-
-
-            for (let i = 0; i < 5; i++) { // Start with 5 fish
+            for (let i = 0; i < 5; i++) {
                 addFish();
             }
-            generateBubbles(20); // Initial bubbles
-            requestAnimationFrame(animate); // Start animation loop
+            generateBubbles(20);
+            requestAnimationFrame(animate);
         };
 
-        // Resize event to handle fish and bubble repositioning
         const debouncedResize = debounce(() => {
-            // Re-initialize fish and bubbles to adapt their sizes/positions to new viewport
             fishArray.forEach(fish => fish.initPositionAndSize());
             if (bubblesEnabled) {
                 bubblesArray.forEach(bubble => bubble.initBubble());
             }
-            // Ornaments will retain their relative positions but might need scale adjustment
-            ornamentsArray.forEach(ornament => ornament.initPositionAndSize(ornament.x + ornament.element.clientWidth/2, ornament.y + ornament.element.clientHeight/2)); // Recalculate based on current center
+            // Ornaments need to re-clamp their positions based on new viewport size
+            ornamentsArray.forEach(ornament => {
+                const scaledWidth = ornament.element.clientWidth * ornament.scale;
+                const scaledHeight = ornament.element.clientHeight * ornament.scale;
+                ornament.x = Math.max(0, Math.min(ornament.x, window.innerWidth - scaledWidth));
+                ornament.y = Math.max(0, Math.min(ornament.y, window.innerHeight - scaledHeight));
+                ornament.applyTransform();
+            });
         }, 200);
 
         window.addEventListener('resize', debouncedResize);
