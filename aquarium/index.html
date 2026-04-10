@@ -1,1 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Aquarium</title>
+    <style>
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.2);
+            --glass-border: rgba(255, 255, 255, 0.3);
+            --glass-shadow: rgba(0, 0, 0, 0.1);
+        }
 
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #000; /* Fallback for background */
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .aquarium-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('aquarium/background/background1.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            z-index: -2; /* Below overlay and content */
+        }
+
+        .aquarium-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at bottom, rgba(0, 70, 150, 0.2) 0%, rgba(0, 0, 0, 0) 70%),
+                        linear-gradient(to top, rgba(0, 100, 200, 0.1) 0%, rgba(0, 10, 30, 0.2) 100%);
+            z-index: -1; /* Above background, below content */
+            pointer-events: none; /* Allows clicks to pass through to elements below */
+        }
+
+        .ornament {
+            position: absolute;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 1;
+            transition: transform 0.5s ease-out; /* For subtle parallax */
+        }
+
+        .fish {
+            position: absolute;
+            pointer-events: none;
+            z-index: 2;
+            image-rendering: optimizeSpeed; /* Optimize image quality for movement */
+            transform-origin: center center;
+            will-change: transform, left, top; /* Optimize for animation */
+        }
+
+        .fish img {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .bubble {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0; /* Below fish and ornaments */
+            filter: blur(0.5px);
+            will-change: transform, opacity;
+        }
+
+        /* UI Controls - Glassmorphism Style */
+        .controls-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px); /* For Safari */
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-shadow: 0 4px 10px var(--glass-shadow);
+            z-index: 10;
+            user-select: none; /* Prevent text selection */
+        }
+
+        .controls-panel button {
+            background: rgba(255, 255, 255, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            color: #333;
+            padding: 10px 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: bold;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(5px); /* Ensure button background is also blurred */
+        }
+
+        .controls-panel button:hover {
+            background: rgba(255, 255, 255, 0.6);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .controls-panel button:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .controls-panel {
+                top: 10px;
+                right: 10px;
+                padding: 10px;
+                gap: 5px;
+            }
+            .controls-panel button {
+                padding: 8px 12px;
+                font-size: 0.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="aquarium-background"></div>
+    <div class="aquarium-overlay"></div>
+
+    <div id="aquarium-container">
+        <!-- Ornaments will be injected here by JS -->
+        <!-- Fish will be injected here by JS -->
+        <!-- Bubbles will be injected here by JS -->
+    </div>
+
+    <div class="controls-panel">
+        <button id="addFishBtn">Add Fish</button>
+        <button id="removeFishBtn">Remove Fish</button>
+        <button id="toggleBubblesBtn">Toggle Bubbles</button>
+    </div>
+
+    <script>
+        const aquariumContainer = document.getElementById('aquarium-container');
+        const addFishBtn = document.getElementById('addFishBtn');
+        const removeFishBtn = document.getElementById('removeFishBtn');
+        const toggleBubblesBtn = document.getElementById('toggleBubblesBtn');
+
+        const ornamentImages = [
+            'aquarium/ornamen/ornamen1.png',
+            'aquarium/ornamen/ornamen2.png',
+            'aquarium/ornamen/ornamen3.png',
+            'aquarium/ornamen/ornamen4.png'
+        ];
+        const fishImage = 'aquarium/fish/fish1.png';
+
+        const maxFish = 10; // Max fish count
+        let fishCount = 0;
+        let fishArray = [];
+        let bubblesArray = [];
+        let bubblesEnabled = true;
+
+        // --- Utility Functions ---
+        function getRandom(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+
+        // --- Ornaments ---
+        function loadOrnaments() {
+            ornamentImages.forEach((src, index) => {
+                const ornament = document.createElement('img');
+                ornament.src = src;
+                ornament.classList.add('ornament');
+                aquariumContainer.appendChild(ornament);
+
+                // Randomize size and position
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+
+                const baseWidth = getRandom(150, 300); // Base width for ornaments
+                ornament.style.width = `${baseWidth}px`;
+                ornament.style.height = 'auto'; // Maintain aspect ratio
+
+                // Calculate bottom position based on ornament height to ensure it sits on the "seabed"
+                ornament.onload = () => {
+                    const ornamentHeight = ornament.clientHeight;
+                    // Position at bottom, ensuring it's fully visible and grounded
+                    const bottomOffset = getRandom(0, 50); // Slight variation
+                    ornament.style.bottom = `${-ornamentHeight + bottomOffset + 50}px`; // Adjust as needed
+                    ornament.style.left = `${getRandom(0, viewportWidth - baseWidth)}px`; // Random horizontal position
+
+                    // Apply a z-index based on its relative position if needed
+                    // For simplicity, all ornaments have z-index: 1 as per CSS
+                };
+            });
+        }
+
+        // --- Fish System ---
+        class Fish {
+            constructor() {
+                this.element = document.createElement('div');
+                this.element.classList.add('fish');
+                this.img = document.createElement('img');
+                this.img.src = fishImage;
+                this.element.appendChild(this.img);
+                aquariumContainer.appendChild(this.element);
+
+                this.size = getRandom(50, 150); // Fish size
+                this.speed = getRandom(0.5, 2); // Pixels per frame
+                this.amplitude = getRandom(5, 15); // Vertical sine wave amplitude
+                this.frequency = getRandom(0.02, 0.05); // Vertical sine wave frequency
+                this.phase = getRandom(0, Math.PI * 2); // Starting phase for sine wave
+
+                this.element.style.width = `${this.size}px`;
+
+                this.direction = Math.random() < 0.5 ? 1 : -1; // 1 for right, -1 for left
+                this.x = this.direction === 1 ? -this.size : window.innerWidth; // Start off-screen
+                this.y = getRandom(window.innerHeight * 0.1, window.innerHeight * 0.7); // Y position
+
+                this.updateTransform();
+            }
+
+            updateTransform() {
+                // Apply horizontal flip based on direction
+                this.img.style.transform = `scaleX(${this.direction})`;
+                this.element.style.left = `${this.x}px`;
+                this.element.style.top = `${this.y}px`;
+            }
+
+            move() {
+                // Horizontal movement
+                this.x += this.speed * this.direction;
+
+                // Vertical sine wave movement
+                this.y += Math.sin(this.phase) * this.amplitude * 0.1; // Slower vertical drift
+                this.phase += this.frequency;
+
+                // Check for screen exit and re-entry
+                if (this.direction === 1 && this.x > window.innerWidth) {
+                    this.x = -this.size; // Re-enter from left
+                    this.y = getRandom(window.innerHeight * 0.1, window.innerHeight * 0.7); // New random Y
+                } else if (this.direction === -1 && this.x < -this.size) {
+                    this.x = window.innerWidth; // Re-enter from right
+                    this.y = getRandom(window.innerHeight * 0.1, window.innerHeight * 0.7); // New random Y
+                }
+
+                // If fish is too high or low, reverse vertical direction or clamp
+                if (this.y < 0 || this.y > window.innerHeight - this.size) {
+                    // Simple reversal, or could re-calculate phase for a smoother bounce
+                    this.phase = -this.phase;
+                }
+
+                this.updateTransform();
+            }
+        }
+
+        function addFish() {
+            if (fishCount < maxFish) {
+                const fish = new Fish();
+                fishArray.push(fish);
+                fishCount++;
+            }
+        }
+
+        function removeFish() {
+            if (fishArray.length > 0) {
+                const fishToRemove = fishArray.pop();
+                fishToRemove.element.remove();
+                fishCount--;
+            }
+        }
+
+        // --- Bubbles System ---
+        class Bubble {
+            constructor() {
+                this.element = document.createElement('div');
+                this.element.classList.add('bubble');
+                aquariumContainer.appendChild(this.element);
+
+                this.size = getRandom(5, 20);
+                this.speed = getRandom(0.5, 2);
+                this.x = getRandom(0, window.innerWidth - this.size);
+                this.y = window.innerHeight; // Start at bottom
+                this.opacity = getRandom(0.3, 0.7);
+
+                this.element.style.width = `${this.size}px`;
+                this.element.style.height = `${this.size}px`;
+                this.element.style.opacity = this.opacity;
+                this.element.style.left = `${this.x}px`;
+                this.element.style.top = `${this.y}px`;
+                this.element.style.filter = `blur(${this.size * 0.05}px)`; // Dynamic blur
+            }
+
+            move() {
+                this.y -= this.speed;
+                this.element.style.top = `${this.y}px`;
+                this.element.style.left = `${this.x + Math.sin(this.y * 0.05) * 5}px`; // Slight horizontal drift
+
+                // Re-enter from bottom when exiting top
+                if (this.y < -this.size) {
+                    this.y = window.innerHeight;
+                    this.x = getRandom(0, window.innerWidth - this.size);
+                    this.size = getRandom(5, 20);
+                    this.speed = getRandom(0.5, 2);
+                    this.opacity = getRandom(0.3, 0.7);
+                    this.element.style.width = `${this.size}px`;
+                    this.element.style.height = `${this.size}px`;
+                    this.element.style.opacity = this.opacity;
+                    this.element.style.left = `${this.x}px`;
+                    this.element.style.filter = `blur(${this.size * 0.05}px)`;
+                }
+            }
+
+            remove() {
+                this.element.remove();
+            }
+        }
+
+        function generateBubbles(count) {
+            for (let i = 0; i < count; i++) {
+                bubblesArray.push(new Bubble());
+            }
+        }
+
+        function toggleBubbles() {
+            bubblesEnabled = !bubblesEnabled;
+            if (bubblesEnabled) {
+                // If re-enabling, add some new bubbles
+                generateBubbles(10);
+                toggleBubblesBtn.textContent = "Disable Bubbles";
+            } else {
+                // Remove all current bubbles
+                bubblesArray.forEach(bubble => bubble.remove());
+                bubblesArray = [];
+                toggleBubblesBtn.textContent = "Enable Bubbles";
+            }
+        }
+
+        // --- Animation Loop ---
+        let lastTimestamp = 0;
+        const parallaxStrength = 0.005; // Adjust for subtle movement
+
+        function animate(timestamp) {
+            const deltaTime = timestamp - lastTimestamp;
+            lastTimestamp = timestamp;
+
+            // Parallax for ornaments (very subtle horizontal drift)
+            const mouseX = window.innerWidth / 2; // Fixed point for parallax, or use actual mouseX
+            const ornaments = document.querySelectorAll('.ornament');
+            ornaments.forEach(ornament => {
+                const targetX = (mouseX - window.innerWidth / 2) * parallaxStrength;
+                // Add a very slow, subtle automatic drift for "living" feel
+                const drift = Math.sin(timestamp * 0.0001) * 5; // Slow sine wave drift
+                ornament.style.transform = `translateX(${targetX + drift}px)`;
+            });
+
+            // Animate fish
+            fishArray.forEach(fish => fish.move());
+
+            // Animate bubbles
+            if (bubblesEnabled) {
+                bubblesArray.forEach(bubble => bubble.move());
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // --- Event Listeners ---
+        addFishBtn.addEventListener('click', addFish);
+        removeFishBtn.addEventListener('click', removeFish);
+        toggleBubblesBtn.addEventListener('click', toggleBubbles);
+
+        // --- Initialization ---
+        window.onload = () => {
+            loadOrnaments();
+            for (let i = 0; i < 5; i++) { // Start with 5 fish
+                addFish();
+            }
+            generateBubbles(20); // Initial bubbles
+            requestAnimationFrame(animate); // Start animation loop
+        };
+
+        // Resize event to handle fish and bubble repositioning if needed
+        window.addEventListener('resize', () => {
+            // Re-calculate fish and bubble positions relative to new viewport size
+            // For simplicity, we'll let existing fish/bubbles re-enter from new edges
+            // Ornaments could be re-positioned for optimal layout on resize
+            loadOrnaments(); // Re-position ornaments on resize
+        });
+
+    </script>
+</body>
+</html>
