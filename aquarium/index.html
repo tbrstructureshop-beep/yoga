@@ -6,48 +6,34 @@
     <title>Premium Virtual Aquarium</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        /* === Root Variables & Global Resets === */
         :root {
             --glass-bg: rgba(255, 255, 255, 0.15);
             --glass-border: rgba(255, 255, 255, 0.25);
             --glass-shadow: rgba(0, 0, 0, 0.25);
-            --glow-color-primary-rgb: 0, 255, 255;
             --text-color-light: #e0f7fa;
             --primary-accent: #00aaff;
-            --secondary-accent: #00bcd4;
             --panel-width-desktop: 320px;
-            --panel-width-mobile: 90vw;
-            --padding-base: 15px;
-            --gap-base: 10px;
             font-size: 16px;
         }
 
-        *, *::before, *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
             font-family: 'Montserrat', sans-serif;
             margin: 0;
             overflow: hidden;
             background-color: #0a192f;
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            user-select: none;
-            touch-action: none;
+            width: 100vw; height: 100vh;
+            display: flex; justify-content: center; align-items: center;
+            user-select: none; touch-action: none;
             color: var(--text-color-light);
         }
 
-        /* === Aquarium Background === */
+        /* Fixed Background Path: Removed ../ */
         .aquarium-background {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background-image: url('../../background/background1.png');
+            background-image: url('background/background1.png'); 
             background-size: cover;
             background-position: center;
             z-index: -2;
@@ -62,73 +48,33 @@
             pointer-events: none;
         }
 
-        #aquarium-container {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-        }
+        #aquarium-container { position: absolute; width: 100%; height: 100%; overflow: hidden; }
 
-        /* === Draggable Items === */
-        .draggable-item {
-            position: absolute;
-            will-change: transform;
-            cursor: grab;
-            z-index: 10;
-        }
+        .draggable-item { position: absolute; will-change: transform; cursor: grab; z-index: 10; }
         .draggable-item.dragging { cursor: grabbing; z-index: 1000 !important; }
         .draggable-item.selected { box-shadow: 0 0 15px rgba(0, 255, 255, 0.5); border-radius: 10px; }
         .draggable-item img { display: block; width: 100%; pointer-events: none; }
 
         .item-controls {
-            position: absolute;
-            top: -50px; left: 50%;
-            transform: translateX(-50%);
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            padding: 5px 10px;
-            display: flex;
-            gap: 8px;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s;
+            position: absolute; top: -50px; left: 50%; transform: translateX(-50%);
+            background: var(--glass-bg); backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border); border-radius: 12px;
+            padding: 5px 10px; display: flex; gap: 8px; opacity: 0; pointer-events: none;
         }
         .draggable-item.selected .item-controls { opacity: 1; pointer-events: auto; }
         .item-controls button {
-            background: rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            color: white;
-            border-radius: 5px;
-            padding: 2px 8px;
-            cursor: pointer;
+            background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.4);
+            color: white; border-radius: 5px; padding: 2px 8px; cursor: pointer;
         }
 
-        /* === UI Panels === */
         .ui-panel {
-            position: absolute;
-            background: var(--glass-bg);
-            backdrop-filter: blur(15px);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            padding: var(--padding-base);
-            box-shadow: 0 8px 30px var(--glass-shadow);
-            z-index: 100;
+            position: absolute; background: var(--glass-bg); backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border); border-radius: 20px; padding: 15px;
+            box-shadow: 0 8px 30px var(--glass-shadow); z-index: 100;
         }
 
-        #dashboard-panel {
-            bottom: 20px; left: 50%;
-            transform: translateX(-50%);
-            display: flex; gap: 10px;
-        }
-
-        #shop-panel {
-            top: 20px; right: 20px;
-            width: var(--panel-width-desktop);
-            max-height: 80vh;
-            overflow-y: auto;
-        }
+        #dashboard-panel { bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; }
+        #shop-panel { top: 20px; right: 20px; width: var(--panel-width-desktop); max-height: 80vh; overflow-y: auto; }
 
         .shop-tabs { display: flex; gap: 5px; margin-bottom: 15px; }
         .shop-tabs button {
@@ -137,9 +83,7 @@
         }
         .shop-tabs button.active { background: var(--primary-accent); }
 
-        .shop-items-grid {
-            display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
-        }
+        .shop-items-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
         .shop-item {
             background: rgba(255,255,255,0.05); border-radius: 10px; padding: 5px;
             cursor: pointer; text-align: center; transition: 0.2s;
@@ -148,30 +92,19 @@
         .shop-item img { width: 100%; height: auto; }
         .hidden { display: none !important; }
 
-        /* Bubbles */
-        .bubble {
-            position: absolute; background: rgba(255, 255, 255, 0.3);
-            border-radius: 50%; pointer-events: none; z-index: 1;
-        }
+        .bubble { position: absolute; background: rgba(255, 255, 255, 0.3); border-radius: 50%; pointer-events: none; z-index: 1; }
 
-        /* Modal */
         .item-preview-modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.6); backdrop-filter: blur(5px);
             display: flex; justify-content: center; align-items: center; z-index: 2000;
         }
-        .modal-content {
-            background: #1a3a5a; padding: 30px; border-radius: 20px; text-align: center;
-            border: 1px solid var(--primary-accent);
-        }
+        .modal-content { background: #1a3a5a; padding: 30px; border-radius: 20px; text-align: center; border: 1px solid var(--primary-accent); }
         .modal-item-preview-img { max-width: 150px; margin: 20px 0; }
-        
-        /* Toast */
         .toast-container { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 3000; }
         .toast { background: rgba(0,0,0,0.8); color: white; padding: 10px 20px; border-radius: 20px; margin-bottom: 5px; }
 
-        button { cursor: pointer; font-family: inherit; transition: 0.2s; }
-        button:hover { filter: brightness(1.2); }
+        button { cursor: pointer; font-family: inherit; }
     </style>
 </head>
 <body>
@@ -198,7 +131,6 @@
         <div id="ornamentShopItems" class="shop-items-grid hidden"></div>
     </div>
 
-    <!-- Modal -->
     <div id="itemPreviewModal" class="item-preview-modal hidden">
         <div class="modal-content">
             <h2 id="modalItemName" style="font-family: Orbitron;">Item Name</h2>
@@ -209,8 +141,8 @@
                 <button onclick="adjustQty(1)">+</button>
             </div>
             <div style="display: flex; gap: 10px; justify-content: center;">
-                <button id="modalAddBtn" style="background: var(--primary-accent); color: white; padding: 10px 20px;">Add to Aquarium</button>
-                <button id="modalCloseBtn" style="background: #444; color: white; padding: 10px 20px;">Cancel</button>
+                <button id="modalAddBtn" style="background: var(--primary-accent); color: white; padding: 10px 20px; border:none; border-radius:5px;">Add</button>
+                <button id="modalCloseBtn" style="background: #444; color: white; padding: 10px 20px; border:none; border-radius:5px;">Cancel</button>
             </div>
         </div>
     </div>
@@ -220,15 +152,16 @@
     <audio id="backgroundMusic" src="https://github.com/tbrstructureshop-beep/yoga/raw/77ff863a2d8fd8ea235213389621a3a59853d817/aquarium/838fc208-2aa9-407e-ae4a-f7178acb7e65.mp3" loop></audio>
 
     <script>
+        // FIXED ASSET PATHS: Removed ../ because folders are inside the project root
         const ASSET_CONFIG = {
             fish: [
-                { id: 'fish1', src: '../../fish/fish1.png', name: 'Tropical Fish', baseWidth: 80, scaleRange: [0.7, 1.3], speed: [1, 2.5] }
+                { id: 'fish1', src: 'fish/fish1.png', name: 'Tropical Fish', baseWidth: 80, scaleRange: [0.7, 1.3], speed: [1, 2.5] }
             ],
             ornaments: [
-                { id: 'ornament1', src: '../../ornamen/ornamen1.png', name: 'Coral A', baseWidth: 100, scaleRange: [0.8, 1.5] },
-                { id: 'ornament2', src: '../../ornamen/ornamen2.png', name: 'Seaweed', baseWidth: 80, scaleRange: [0.7, 1.2] },
-                { id: 'ornament3', src: '../../ornamen/ornamen3.png', name: 'Treasure', baseWidth: 90, scaleRange: [0.9, 1.1] },
-                { id: 'ornament4', src: '../../ornamen/ornamen4.png', name: 'Volcano', baseWidth: 120, scaleRange: [1.0, 1.5] }
+                { id: 'ornament1', src: 'ornamen/ornamen1.png', name: 'Coral A', baseWidth: 100, scaleRange: [0.8, 1.5] },
+                { id: 'ornament2', src: 'ornamen/ornamen2.png', name: 'Seaweed', baseWidth: 80, scaleRange: [0.7, 1.2] },
+                { id: 'ornament3', src: 'ornamen/ornamen3.png', name: 'Treasure', baseWidth: 90, scaleRange: [0.9, 1.1] },
+                { id: 'ornament4', src: 'ornamen/ornamen4.png', name: 'Volcano', baseWidth: 120, scaleRange: [1.0, 1.5] }
             ]
         };
 
@@ -255,7 +188,6 @@
             input.value = n < 1 ? 1 : n;
         };
 
-        // --- Controller ---
         const UIController = {
             init() {
                 this.renderShop();
@@ -269,7 +201,6 @@
                 document.getElementById('modalCloseBtn').onclick = () => this.hideModal();
                 document.getElementById('modalAddBtn').onclick = () => this.confirmAdd();
 
-                // Deselect logic
                 document.addEventListener('pointerdown', (e) => {
                     if (e.target.id === 'aquarium-container') {
                         if (state.selectedItem) state.selectedItem.deselect();
@@ -280,16 +211,8 @@
             renderShop() {
                 const fishGrid = document.getElementById('fishShopItems');
                 const ornaGrid = document.getElementById('ornamentShopItems');
-
-                ASSET_CONFIG.fish.forEach(f => {
-                    const el = this.createShopEl(f, 'fish');
-                    fishGrid.appendChild(el);
-                });
-
-                ASSET_CONFIG.ornaments.forEach(o => {
-                    const el = this.createShopEl(o, 'ornament');
-                    ornaGrid.appendChild(el);
-                });
+                ASSET_CONFIG.fish.forEach(f => fishGrid.appendChild(this.createShopEl(f, 'fish')));
+                ASSET_CONFIG.ornaments.forEach(o => ornaGrid.appendChild(this.createShopEl(o, 'ornament')));
             },
 
             createShopEl(asset, type) {
@@ -316,15 +239,11 @@
                 document.getElementById('itemPreviewModal').classList.remove('hidden');
             },
 
-            hideModal() {
-                document.getElementById('itemPreviewModal').classList.add('hidden');
-            },
+            hideModal() { document.getElementById('itemPreviewModal').classList.add('hidden'); },
 
             confirmAdd() {
                 const qty = parseInt(document.getElementById('modalQty').value);
-                for(let i=0; i<qty; i++) {
-                    EntityManager.create(state.modalItem.asset, state.modalItem.type);
-                }
+                for(let i=0; i<qty; i++) EntityManager.create(state.modalItem.asset, state.modalItem.type);
                 showToast(`Added ${qty} ${state.modalItem.asset.name}`);
                 this.hideModal();
             },
@@ -345,18 +264,9 @@
                 state.bubblesEnabled = !state.bubblesEnabled;
                 document.getElementById('toggleBubblesBtn').textContent = state.bubblesEnabled ? "🫧 Bubbles" : "🚫 Bubbles";
                 state.bubbles.forEach(b => b.style.display = state.bubblesEnabled ? 'block' : 'none');
-            },
-
-            setMusicState(playing) {
-                if (playing !== state.isMusicPlaying) this.toggleMusic();
-            },
-
-            setBubblesState(enabled) {
-                if (enabled !== state.bubblesEnabled) this.toggleBubbles();
             }
         };
 
-        // --- Entity Logic ---
         class Entity {
             constructor(asset, type, data = null) {
                 this.asset = asset;
@@ -366,13 +276,11 @@
                 this.img = document.createElement('img');
                 this.img.src = asset.src;
                 this.element.appendChild(this.img);
-
                 this.controls = document.createElement('div');
                 this.controls.className = 'item-controls';
                 this.controls.innerHTML = `<button class="del">🗑️</button>`;
                 this.controls.querySelector('.del').onclick = (e) => { e.stopPropagation(); this.remove(); };
                 this.element.appendChild(this.controls);
-
                 document.getElementById('aquarium-container').appendChild(this.element);
 
                 this.x = data ? data.x : Math.random() * (window.innerWidth - 100);
@@ -380,7 +288,6 @@
                 this.scale = data ? data.scale : (Math.random() * (asset.scaleRange[1] - asset.scaleRange[0]) + asset.scaleRange[0]);
                 this.dir = data ? data.dir : (Math.random() > 0.5 ? 1 : -1);
                 this.speed = asset.speed ? (Math.random() * (asset.speed[1] - asset.speed[0]) + asset.speed[0]) : 0;
-
                 this.initEvents();
                 this.render();
             }
@@ -405,16 +312,8 @@
                 this.element.onpointerup = () => this.isDragging = false;
             }
 
-            deselect() {
-                this.element.classList.remove('selected');
-                state.selectedItem = null;
-            }
-
-            remove() {
-                this.element.remove();
-                state.items = state.items.filter(i => i !== this);
-            }
-
+            deselect() { this.element.classList.remove('selected'); state.selectedItem = null; }
+            remove() { this.element.remove(); state.items = state.items.filter(i => i !== this); }
             update() {
                 if (this.type === 'fish' && !this.isDragging) {
                     this.x += this.speed * this.dir;
@@ -423,7 +322,6 @@
                     this.render();
                 }
             }
-
             render() {
                 this.element.style.width = (this.asset.baseWidth * this.scale) + 'px';
                 const flip = this.type === 'fish' ? `scaleX(${this.dir})` : '';
@@ -433,15 +331,8 @@
         }
 
         const EntityManager = {
-            create(asset, type, data = null) {
-                const e = new Entity(asset, type, data);
-                state.items.push(e);
-            },
-            reset() {
-                state.items.forEach(i => i.element.remove());
-                state.items = [];
-                showToast("Aquarium Cleared");
-            }
+            create(asset, type, data = null) { state.items.push(new Entity(asset, type, data)); },
+            reset() { state.items.forEach(i => i.element.remove()); state.items = []; showToast("Aquarium Cleared"); }
         };
 
         const Persistence = {
@@ -463,13 +354,10 @@
                     const asset = [...ASSET_CONFIG.fish, ...ASSET_CONFIG.ornaments].find(a => a.id === d.id);
                     if (asset) EntityManager.create(asset, d.type, d);
                 });
-                UIController.setMusicState(data.music);
-                UIController.setBubblesState(data.bubbles);
                 showToast("Layout Loaded");
             }
         };
 
-        // --- Init ---
         function createBubbles() {
             for(let i=0; i<15; i++) {
                 const b = document.createElement('div');
@@ -480,15 +368,8 @@
                 b.style.bottom = '-50px';
                 document.getElementById('aquarium-container').appendChild(b);
                 state.bubbles.push(b);
-                
-                const animate = () => {
-                    const dur = Math.random() * 4000 + 4000;
-                    b.animate([
-                        { transform: `translateY(0) translateX(0)`, opacity: 0.6 },
-                        { transform: `translateY(-110vh) translateX(${Math.random()*50-25}px)`, opacity: 0 }
-                    ], { duration: dur, iterations: Infinity, delay: Math.random() * 5000 });
-                };
-                animate();
+                b.animate([{ transform: `translateY(0)`, opacity: 0.6 }, { transform: `translateY(-110vh)`, opacity: 0 }], 
+                { duration: Math.random() * 4000 + 4000, iterations: Infinity, delay: Math.random() * 5000 });
             }
         }
 
@@ -500,12 +381,7 @@
         UIController.init();
         createBubbles();
         loop();
-
-        // Default Fish
-        setTimeout(() => {
-            if (state.items.length === 0) EntityManager.create(ASSET_CONFIG.fish[0], 'fish');
-        }, 500);
-
+        setTimeout(() => { if (state.items.length === 0) EntityManager.create(ASSET_CONFIG.fish[0], 'fish'); }, 500);
     </script>
 </body>
 </html>
