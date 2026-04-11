@@ -7,25 +7,29 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* Light Mode (Default Tropical) */
-            --bg-bright: 0.8;
-            --overlay-color: rgba(0, 70, 150, 0.2);
-            --glass-bg: rgba(255, 255, 255, 0.15);
-            --glass-border: rgba(255, 255, 255, 0.25);
+            /* Day Mode Settings */
+            --bg-bright: 0.85;
+            --overlay-color: rgba(0, 70, 150, 0.15);
+            --glass-bg: rgba(255, 255, 255, 0.12);
+            --glass-border: rgba(255, 255, 255, 0.2);
             --text-color: #e0f7fa;
             --primary-accent: #00aaff;
+            --item-brightness: 1;
+            --item-saturate: 1.1;
             --panel-width: 320px;
-            transition: all 0.5s ease;
+            transition: all 0.8s ease;
         }
 
-        /* Night Mode Variables */
+        /* Night Mode Settings */
         body.night-mode {
-            --bg-bright: 0.3;
-            --overlay-color: rgba(0, 10, 40, 0.7);
-            --glass-bg: rgba(0, 0, 0, 0.6);
-            --glass-border: rgba(0, 255, 255, 0.1);
-            --text-color: #80cbc4;
-            --primary-accent: #006064;
+            --bg-bright: 0.25;
+            --overlay-color: rgba(0, 10, 30, 0.75);
+            --glass-bg: rgba(0, 15, 30, 0.7);
+            --glass-border: rgba(0, 255, 255, 0.15);
+            --text-color: #b2ebf2;
+            --primary-accent: #00838f;
+            --item-brightness: 0.45; /* Dims the fish/ornaments */
+            --item-saturate: 0.7;     /* Drains color in the dark */
         }
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -35,12 +39,11 @@
             margin: 0; overflow: hidden;
             background-color: #050b14;
             width: 100vw; height: 100vh;
-            display: flex; justify-content: center; align-items: center;
             user-select: none; touch-action: none;
             color: var(--text-color);
         }
 
-        /* Background */
+        /* Background Layer */
         .aquarium-background {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background-image: url('background/background1.png'); 
@@ -57,17 +60,22 @@
             transition: background 1s ease;
         }
 
-        #aquarium-container { position: absolute; width: 100%; height: 100%; overflow: hidden; }
+        #aquarium-container { position: absolute; width: 100%; height: 100%; overflow: hidden; z-index: 10; }
 
-        /* UI Panels Animation */
+        /* UI Panels - HIGH Z-INDEX to stay above fish */
         .ui-panel {
-            position: absolute; background: var(--glass-bg); backdrop-filter: blur(15px);
-            border: 1px solid var(--glass-border); border-radius: 20px; padding: 15px;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.5); z-index: 100;
-            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease;
+            position: absolute; 
+            background: var(--glass-bg); 
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border); 
+            border-radius: 20px; 
+            padding: 18px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6); 
+            z-index: 9999; /* Higher than any item */
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease;
         }
 
-        /* Hiding Logic */
         body.ui-hidden .ui-panel {
             opacity: 0;
             pointer-events: none;
@@ -75,66 +83,78 @@
         body.ui-hidden #dashboard-panel { transform: translate(-50%, 150%); }
         body.ui-hidden #shop-panel { transform: translate(120%, 0); }
 
-        #dashboard-panel { bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; }
-        #shop-panel { top: 20px; right: 20px; width: var(--panel-width); max-height: 80vh; overflow-y: auto; }
+        #dashboard-panel { bottom: 25px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; }
+        #shop-panel { top: 25px; right: 25px; width: var(--panel-width); max-height: 80vh; overflow-y: auto; }
 
-        /* Floating Show UI Button */
         #showUIBtn {
-            position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px;
+            position: fixed; bottom: 25px; right: 25px; width: 55px; height: 55px;
             background: var(--glass-bg); border: 1px solid var(--glass-border);
             border-radius: 50%; color: white; display: none; align-items: center;
-            justify-content: center; cursor: pointer; z-index: 1000; font-size: 20px;
+            justify-content: center; cursor: pointer; z-index: 10000; font-size: 22px;
+            backdrop-filter: blur(10px);
         }
         body.ui-hidden #showUIBtn { display: flex; }
 
-        /* Draggable Items */
-        .draggable-item { position: absolute; will-change: transform; cursor: grab; z-index: 10; padding: 5px; }
-        .draggable-item.dragging { cursor: grabbing; z-index: 1000 !important; }
-        .draggable-item.selected { border: 1px solid var(--primary-accent); background: rgba(0, 255, 255, 0.05); border-radius: 10px; }
-        .draggable-item img { display: block; width: 100%; pointer-events: none; }
+        /* Draggable Items and LIGHTING EFFECT */
+        .draggable-item { position: absolute; will-change: transform; cursor: grab; z-index: 20; padding: 5px; }
+        .draggable-item img { 
+            display: block; 
+            width: 100%; 
+            pointer-events: none; 
+            /* This makes items affected by Day/Night mode */
+            filter: brightness(var(--item-brightness)) saturate(var(--item-saturate));
+            transition: filter 1s ease; 
+        }
+        
+        .draggable-item.dragging { cursor: grabbing; z-index: 5000 !important; }
+        .draggable-item.selected { border: 1.5px solid var(--primary-accent); background: rgba(0, 255, 255, 0.08); border-radius: 12px; }
 
         .item-controls {
-            position: absolute; top: -55px; left: 50%; transform: translateX(-50%);
-            background: var(--glass-bg); backdrop-filter: blur(10px);
+            position: absolute; top: -60px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(10px);
             border: 1px solid var(--glass-border); border-radius: 12px;
-            padding: 8px 12px; display: flex; align-items: center; gap: 10px; opacity: 0; pointer-events: none;
+            padding: 10px 15px; display: flex; align-items: center; gap: 12px; 
+            opacity: 0; pointer-events: none; z-index: 100;
         }
         .draggable-item.selected .item-controls { opacity: 1; pointer-events: auto; }
         
-        /* Shop Styles */
-        .shop-tabs { display: flex; gap: 5px; margin-bottom: 15px; }
+        /* Shop UI */
+        .shop-tabs { display: flex; gap: 6px; margin-bottom: 18px; }
         .shop-tabs button {
-            flex: 1; padding: 8px; background: rgba(255,255,255,0.1);
-            color: white; border: 1px solid var(--glass-border); border-radius: 10px;
+            flex: 1; padding: 10px; background: rgba(255,255,255,0.08);
+            color: white; border: 1px solid var(--glass-border); border-radius: 12px;
         }
-        .shop-tabs button.active { background: var(--primary-accent); }
+        .shop-tabs button.active { background: var(--primary-accent); box-shadow: 0 0 15px var(--primary-accent); }
 
-        .shop-items-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .shop-items-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
         .shop-item {
-            background: rgba(255,255,255,0.05); border-radius: 10px; padding: 5px;
-            cursor: pointer; text-align: center; transition: 0.2s;
+            background: rgba(255,255,255,0.03); border-radius: 12px; padding: 8px;
+            cursor: pointer; text-align: center; transition: transform 0.2s;
         }
+        .shop-item:hover { transform: scale(1.05); background: rgba(255,255,255,0.1); }
         .shop-item img { width: 100%; height: auto; max-height: 50px; object-fit: contain; }
         .hidden { display: none !important; }
 
         /* General Buttons */
-        button { cursor: pointer; font-family: inherit; border: none; padding: 8px 12px; border-radius: 8px; font-weight: 600; }
+        button { cursor: pointer; font-family: inherit; border: none; padding: 10px 14px; border-radius: 10px; font-weight: 700; transition: 0.2s; }
         .btn-main { background: var(--primary-accent); color: white; }
         .btn-dark { background: rgba(255,255,255,0.1); color: white; border: 1px solid var(--glass-border); }
+        button:active { transform: scale(0.95); }
 
         /* Bubbles */
-        .bubble { position: absolute; background: rgba(255, 255, 255, 0.3); border-radius: 50%; pointer-events: none; z-index: 1; }
+        .bubble { position: absolute; background: rgba(255, 255, 255, 0.35); border-radius: 50%; pointer-events: none; z-index: 5; }
 
+        /* Modal */
         .item-preview-modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
-            display: flex; justify-content: center; align-items: center; z-index: 2000;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
+            display: flex; justify-content: center; align-items: center; z-index: 20000;
         }
-        .modal-content { background: var(--glass-bg); padding: 30px; border-radius: 20px; text-align: center; border: 1px solid var(--primary-accent); }
-        .modal-item-preview-img { max-width: 150px; margin: 20px 0; }
+        .modal-content { background: var(--glass-bg); padding: 40px; border-radius: 25px; text-align: center; border: 1px solid var(--primary-accent); max-width: 90%; }
+        .modal-item-preview-img { max-width: 180px; margin: 25px 0; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5)); }
 
-        .toast-container { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 3000; }
-        .toast { background: rgba(0,0,0,0.8); color: white; padding: 10px 20px; border-radius: 20px; margin-bottom: 5px; }
+        .toast-container { position: fixed; bottom: 110px; left: 50%; transform: translateX(-50%); z-index: 30000; }
+        .toast { background: rgba(0,0,0,0.9); border: 1px solid var(--primary-accent); color: white; padding: 12px 24px; border-radius: 30px; margin-bottom: 8px; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -143,22 +163,19 @@
     <div class="aquarium-overlay"></div>
     <div id="aquarium-container"></div>
 
-    <!-- Floating Show UI Button -->
     <div id="showUIBtn">👁️</div>
 
-    <!-- Dashboard -->
     <div id="dashboard-panel" class="ui-panel">
         <button class="btn-dark" id="toggleNightBtn">🌙 Night</button>
         <button class="btn-dark" id="playMusicBtn">🎵 Music</button>
         <button class="btn-dark" id="toggleBubblesBtn">🫧 Bubbles</button>
         <button class="btn-dark" id="saveStateBtn">💾 Save</button>
         <button class="btn-dark" id="hideUIBtn">🙈 Hide UI</button>
-        <button class="btn-dark" id="resetAquariumBtn" style="color:#ff4d4d;">🗑️ Reset</button>
+        <button class="btn-dark" id="resetAquariumBtn" style="color:#ff6b6b;">🗑️ Reset</button>
     </div>
 
-    <!-- Shop -->
     <div id="shop-panel" class="ui-panel">
-        <h3 style="margin-bottom: 10px; font-family: Orbitron;">Shop</h3>
+        <h3 style="margin-bottom: 12px; font-family: Orbitron; font-size: 18px; text-align: center;">AQUARIUM SHOP</h3>
         <div class="shop-tabs">
             <button id="tabFish" class="active">Fish</button>
             <button id="tabOrnaments">Ornaments</button>
@@ -167,18 +184,17 @@
         <div id="ornamentShopItems" class="shop-items-grid hidden"></div>
     </div>
 
-    <!-- Modal -->
     <div id="itemPreviewModal" class="item-preview-modal hidden">
         <div class="modal-content">
             <h2 id="modalItemName" style="font-family: Orbitron;">Item Name</h2>
             <img id="modalItemPreview" class="modal-item-preview-img">
-            <div id="quantityControl" style="margin-bottom: 20px;">
-                <button class="btn-dark" onclick="adjustQty(-1)">-</button>
-                <input type="number" id="modalQty" value="1" style="width: 50px; text-align: center; background: none; color: white; border: 1px solid white;">
-                <button class="btn-dark" onclick="adjustQty(1)">+</button>
+            <div id="quantityControl" style="margin-bottom: 25px; display: flex; align-items: center; justify-content: center; gap: 15px;">
+                <button class="btn-dark" onclick="adjustQty(-1)" style="width:40px;">-</button>
+                <input type="number" id="modalQty" value="1" readonly style="width: 60px; text-align: center; background: rgba(255,255,255,0.1); color: white; border: 1px solid white; border-radius: 8px; font-size: 20px; padding: 5px;">
+                <button class="btn-dark" onclick="adjustQty(1)" style="width:40px;">+</button>
             </div>
-            <div style="display: flex; gap: 10px; justify-content: center;">
-                <button class="btn-main" id="modalAddBtn">Add</button>
+            <div style="display: flex; gap: 12px; justify-content: center;">
+                <button class="btn-main" id="modalAddBtn" style="padding: 12px 30px;">Add Items</button>
                 <button class="btn-dark" id="modalCloseBtn">Cancel</button>
             </div>
         </div>
@@ -191,10 +207,10 @@
     <script>
         const ASSET_CONFIG = {
             fish: [
-                { id: 'fish1', src: 'fish/fish1.png', name: 'Neon Fish', baseWidth: 100, scaleRange: [0.5, 2.0], speed: [1, 2.5] }
+                { id: 'fish1', src: 'fish/fish1.png', name: 'Fish 01', baseWidth: 100, scaleRange: [0.5, 2.5], speed: [1.2, 2.8] }
             ],
             ornaments: [
-                { id: 'ornament1', src: 'ornamen/ornamen1.png', name: 'Coral A', baseWidth: 120, scaleRange: [0.5, 2.5] },
+                { id: 'ornament1', src: 'ornamen/ornamen1.png', name: 'Coral A', baseWidth: 120, scaleRange: [0.5, 3.0] },
                 { id: 'ornament2', src: 'ornamen/ornamen2.png', name: 'Seaweed', baseWidth: 80, scaleRange: [0.5, 2.5] },
                 { id: 'ornament3', src: 'ornamen/ornamen3.png', name: 'Treasure', baseWidth: 100, scaleRange: [0.5, 2.0] },
                 { id: 'ornament4', src: 'ornamen/ornamen4.png', name: 'Volcano', baseWidth: 150, scaleRange: [0.5, 3.0] }
@@ -202,20 +218,13 @@
         };
 
         let state = {
-            items: [],
-            bubbles: [],
-            isMusicPlaying: false,
-            bubblesEnabled: true,
-            nightMode: false,
-            uiHidden: false,
-            selectedItem: null,
-            modalItem: null
+            items: [], bubbles: [],
+            isMusicPlaying: false, bubblesEnabled: true, nightMode: false,
+            uiHidden: false, selectedItem: null, modalItem: null
         };
 
         const showToast = (msg) => {
-            const t = document.createElement('div');
-            t.className = 'toast';
-            t.textContent = msg;
+            const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
             document.getElementById('toastContainer').appendChild(t);
             setTimeout(() => t.remove(), 2500);
         };
@@ -256,8 +265,7 @@
             },
 
             createShopEl(asset, type) {
-                const div = document.createElement('div');
-                div.className = 'shop-item';
+                const div = document.createElement('div'); div.className = 'shop-item';
                 div.innerHTML = `<img src="${asset.src}"><small>${asset.name}</small>`;
                 div.onclick = () => this.showModal(asset, type);
                 return div;
@@ -271,16 +279,14 @@
             },
 
             toggleUI(hide) {
-                state.uiHidden = hide;
-                document.body.classList.toggle('ui-hidden', hide);
-                if(hide) showToast("UI Hidden. Click Eye to restore.");
+                state.uiHidden = hide; document.body.classList.toggle('ui-hidden', hide);
+                if(hide) showToast("UI Hidden. Click the eye to restore.");
             },
 
             toggleNight() {
                 state.nightMode = !state.nightMode;
                 document.body.classList.toggle('night-mode', state.nightMode);
                 document.getElementById('toggleNightBtn').textContent = state.nightMode ? "☀️ Day" : "🌙 Night";
-                showToast(state.nightMode ? "Deep Sea Mode Active" : "Tropical Mode Active");
             },
 
             showModal(asset, type) {
@@ -303,7 +309,7 @@
             toggleMusic() {
                 state.isMusicPlaying = !state.isMusicPlaying;
                 const audio = document.getElementById('backgroundMusic');
-                if (state.isMusicPlaying) { audio.play(); document.getElementById('playMusicBtn').textContent = "🔇 Mute"; }
+                if (state.isMusicPlaying) { audio.play().catch(()=>showToast("Interact with page first")); document.getElementById('playMusicBtn').textContent = "🔇 Mute"; }
                 else { audio.pause(); document.getElementById('playMusicBtn').textContent = "🎵 Music"; }
             },
 
@@ -326,7 +332,7 @@
                 this.controls = document.createElement('div');
                 this.controls.className = 'item-controls';
                 const delBtn = document.createElement('button');
-                delBtn.innerHTML = '🗑️'; delBtn.style.background="#ff4d4d";
+                delBtn.innerHTML = '🗑️'; delBtn.style.background="#ff4d4d"; delBtn.style.color="white";
                 delBtn.onclick = (e) => { e.stopPropagation(); this.remove(); };
                 const slider = document.createElement('input');
                 slider.type = 'range'; slider.min = asset.scaleRange[0]; slider.max = asset.scaleRange[1]; slider.step = '0.1';
@@ -338,8 +344,8 @@
                 this.element.appendChild(this.controls);
                 document.getElementById('aquarium-container').appendChild(this.element);
 
-                this.x = data ? data.x : Math.random() * (window.innerWidth - 100);
-                this.y = data ? data.y : Math.random() * (window.innerHeight - 100);
+                this.x = data ? data.x : Math.random() * (window.innerWidth - 150);
+                this.y = data ? data.y : Math.random() * (window.innerHeight - 150);
                 this.scale = data ? data.scale : 1;
                 this.dir = data ? data.dir : (Math.random() > 0.5 ? 1 : -1);
                 this.speed = asset.speed ? (Math.random() * (asset.speed[1] - asset.speed[0]) + asset.speed[0]) : 0;
@@ -368,15 +374,16 @@
                 if (this.type === 'fish' && !this.isDragging) {
                     this.x += this.speed * this.dir;
                     if (this.x > window.innerWidth) this.dir = -1;
-                    if (this.x < -100) this.dir = 1;
+                    if (this.x < -150) this.dir = 1;
                     this.render();
                 }
             }
             render() {
                 this.element.style.width = (this.asset.baseWidth * this.scale) + 'px';
+                // Flip direction logic (swimming right = dir 1, swimming left = dir -1)
                 const flip = this.type === 'fish' ? `scaleX(${this.dir * -1})` : '';
                 this.element.style.transform = `translate(${this.x}px, ${this.y}px) ${flip}`;
-                this.element.style.zIndex = Math.floor(this.y);
+                this.element.style.zIndex = Math.floor(this.y) + 20;
             }
         }
 
@@ -391,15 +398,14 @@
                     night: state.nightMode,
                     items: state.items.map(i => ({ id: i.asset.id, type: i.type, x: i.x, y: i.y, scale: i.scale, dir: i.dir }))
                 };
-                localStorage.setItem('aqua_save_v2', JSON.stringify(data));
-                showToast("Saved Successfully");
+                localStorage.setItem('aqua_save_v3', JSON.stringify(data));
+                showToast("Aquarium Saved");
             }
         };
 
         function createBubbles() {
             for(let i=0; i<15; i++) {
-                const b = document.createElement('div');
-                b.className = 'bubble';
+                const b = document.createElement('div'); b.className = 'bubble';
                 const s = Math.random() * 15 + 5;
                 b.style.width = b.style.height = s + 'px';
                 b.style.left = Math.random() * 100 + 'vw';
@@ -414,6 +420,7 @@
         function loop() { state.items.forEach(i => i.update()); requestAnimationFrame(loop); }
 
         UIController.init(); createBubbles(); loop();
+        // Spawn default fish
         setTimeout(() => { if (state.items.length === 0) EntityManager.create(ASSET_CONFIG.fish[0], 'fish'); }, 500);
     </script>
 </body>
