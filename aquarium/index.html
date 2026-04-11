@@ -10,13 +10,15 @@
         :root {
             --glass-bg: rgba(255, 255, 255, 0.15);
             --glass-border: rgba(255, 255, 255, 0.25);
-            --glass-shadow: rgba(0, 0, 0, 0.3);
+            --glass-shadow: rgba(0, 0, 0, 0.25);
             --glow-color-primary-rgb: 0, 255, 255;
             --text-color-light: #e0f7fa;
             --primary-accent: #00aaff;
             --secondary-accent: #00bcd4;
             --panel-width-desktop: 320px;
             --panel-width-mobile: 90vw;
+            --padding-base: 15px;
+            --gap-base: 10px;
             font-size: 16px;
         }
 
@@ -41,11 +43,23 @@
             color: var(--text-color-light);
         }
 
+        /* === Aquarium Background === */
         .aquarium-background {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(to bottom, #112d4e, #0a192f);
+            background-image: url('../background/background1.png');
+            background-size: cover;
+            background-position: center;
             z-index: -2;
+            filter: brightness(0.8) saturate(1.2);
+        }
+
+        .aquarium-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at bottom, rgba(0, 70, 150, 0.2) 0%, rgba(0, 0, 0, 0) 70%);
+            z-index: -1;
+            pointer-events: none;
         }
 
         #aquarium-container {
@@ -60,40 +74,34 @@
             position: absolute;
             will-change: transform;
             cursor: grab;
-            pointer-events: auto;
             z-index: 10;
         }
         .draggable-item.dragging { cursor: grabbing; z-index: 1000 !important; }
+        .draggable-item.selected { box-shadow: 0 0 15px rgba(0, 255, 255, 0.5); border-radius: 10px; }
         .draggable-item img { display: block; width: 100%; pointer-events: none; }
 
         .item-controls {
             position: absolute;
             top: -50px; left: 50%;
-            transform: translateX(-50%) scale(0.8);
+            transform: translateX(-50%);
             background: var(--glass-bg);
             backdrop-filter: blur(10px);
             border: 1px solid var(--glass-border);
             border-radius: 12px;
-            padding: 8px;
+            padding: 5px 10px;
             display: flex;
             gap: 8px;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.2s, transform 0.2s;
-            z-index: 1001;
+            transition: opacity 0.3s;
         }
-        .draggable-item.selected .item-controls {
-            opacity: 1;
-            pointer-events: auto;
-            transform: translateX(-50%) scale(1);
-        }
-
+        .draggable-item.selected .item-controls { opacity: 1; pointer-events: auto; }
         .item-controls button {
             background: rgba(255, 255, 255, 0.2);
-            border: 1px solid white;
+            border: 1px solid rgba(255, 255, 255, 0.4);
             color: white;
-            padding: 5px 10px;
             border-radius: 5px;
+            padding: 2px 8px;
             cursor: pointer;
         }
 
@@ -104,9 +112,9 @@
             backdrop-filter: blur(15px);
             border: 1px solid var(--glass-border);
             border-radius: 20px;
-            padding: 15px;
+            padding: var(--padding-base);
             box-shadow: 0 8px 30px var(--glass-shadow);
-            z-index: 2000;
+            z-index: 100;
         }
 
         #dashboard-panel {
@@ -118,58 +126,58 @@
         #shop-panel {
             top: 20px; right: 20px;
             width: var(--panel-width-desktop);
-            display: flex; flex-direction: column;
+            max-height: 80vh;
+            overflow-y: auto;
         }
 
-        #shop-panel.hidden { display: none; }
+        .shop-tabs { display: flex; gap: 5px; margin-bottom: 15px; }
+        .shop-tabs button {
+            flex: 1; padding: 8px; background: rgba(255,255,255,0.1);
+            color: white; border: 1px solid var(--glass-border); border-radius: 10px;
+        }
+        .shop-tabs button.active { background: var(--primary-accent); }
 
         .shop-items-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin-top: 10px;
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
         }
-
         .shop-item {
-            background: rgba(255,255,255,0.1);
-            border-radius: 10px;
-            padding: 10px;
-            cursor: pointer;
-            text-align: center;
+            background: rgba(255,255,255,0.05); border-radius: 10px; padding: 5px;
+            cursor: pointer; text-align: center; transition: 0.2s;
         }
-        .shop-item:hover { background: rgba(255,255,255,0.2); }
+        .shop-item:hover { background: rgba(255,255,255,0.15); transform: translateY(-3px); }
         .shop-item img { width: 100%; height: auto; }
-
-        button {
-            cursor: pointer;
-            padding: 10px;
-            border-radius: 8px;
-            border: none;
-            font-weight: bold;
-        }
+        .hidden { display: none !important; }
 
         /* Bubbles */
         .bubble {
-            position: absolute;
-            background: rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            pointer-events: none;
+            position: absolute; background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%; pointer-events: none; z-index: 1;
         }
 
+        /* Modal */
+        .item-preview-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(5px);
+            display: flex; justify-content: center; align-items: center; z-index: 2000;
+        }
+        .modal-content {
+            background: #1a3a5a; padding: 30px; border-radius: 20px; text-align: center;
+            border: 1px solid var(--primary-accent);
+        }
+        .modal-item-preview-img { max-width: 150px; margin: 20px 0; }
+        
         /* Toast */
-        .toast-container {
-            position: fixed; bottom: 100px; left: 50%;
-            transform: translateX(-50%); z-index: 3000;
-        }
-        .toast {
-            background: rgba(0,0,0,0.8); color: white;
-            padding: 10px 20px; border-radius: 20px; margin-top: 5px;
-        }
+        .toast-container { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 3000; }
+        .toast { background: rgba(0,0,0,0.8); color: white; padding: 10px 20px; border-radius: 20px; margin-bottom: 5px; }
+
+        button { cursor: pointer; font-family: inherit; transition: 0.2s; }
+        button:hover { filter: brightness(1.2); }
     </style>
 </head>
 <body>
 
     <div class="aquarium-background"></div>
+    <div class="aquarium-overlay"></div>
     <div id="aquarium-container"></div>
 
     <div id="dashboard-panel" class="ui-panel">
@@ -177,38 +185,51 @@
         <button id="toggleBubblesBtn">🫧 Bubbles</button>
         <button id="saveStateBtn">💾 Save</button>
         <button id="loadStateBtn">📂 Load</button>
-        <button id="resetAquariumBtn" style="background: #ff4d4d;">🗑️ Reset</button>
+        <button id="resetAquariumBtn" style="background: rgba(255,0,0,0.3);">🗑️ Reset</button>
     </div>
 
     <div id="shop-panel" class="ui-panel">
-        <h3 style="font-family: Orbitron;">Shop</h3>
-        <div class="shop-items-grid" id="fishShopItems"></div>
+        <h3 style="margin-bottom: 10px; font-family: Orbitron;">Aquarium Shop</h3>
+        <div class="shop-tabs">
+            <button id="tabFish" class="active">Fish</button>
+            <button id="tabOrnaments">Ornaments</button>
+        </div>
+        <div id="fishShopItems" class="shop-items-grid"></div>
+        <div id="ornamentShopItems" class="shop-items-grid hidden"></div>
+    </div>
+
+    <!-- Modal -->
+    <div id="itemPreviewModal" class="item-preview-modal hidden">
+        <div class="modal-content">
+            <h2 id="modalItemName" style="font-family: Orbitron;">Item Name</h2>
+            <img id="modalItemPreview" class="modal-item-preview-img">
+            <div id="quantityControl" style="margin-bottom: 20px;">
+                <button onclick="adjustQty(-1)">-</button>
+                <input type="number" id="modalQty" value="1" style="width: 50px; text-align: center; background: none; color: white; border: 1px solid white;">
+                <button onclick="adjustQty(1)">+</button>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button id="modalAddBtn" style="background: var(--primary-accent); color: white; padding: 10px 20px;">Add to Aquarium</button>
+                <button id="modalCloseBtn" style="background: #444; color: white; padding: 10px 20px;">Cancel</button>
+            </div>
+        </div>
     </div>
 
     <div class="toast-container" id="toastContainer"></div>
 
-    <!-- Corrected raw audio link -->
     <audio id="backgroundMusic" src="https://github.com/tbrstructureshop-beep/yoga/raw/77ff863a2d8fd8ea235213389621a3a59853d817/aquarium/838fc208-2aa9-407e-ae4a-f7178acb7e65.mp3" loop></audio>
 
     <script>
         const ASSET_CONFIG = {
             fish: [
-                { id: 'fish1', src: 'https://cdn-icons-png.flaticon.com/512/2906/2906323.png', name: 'Fish A', baseWidth: 80, scaleRange: [0.7, 1.3], speed: [1, 2] },
-                { id: 'fish2', src: 'https://cdn-icons-png.flaticon.com/512/2906/2906314.png', name: 'Fish B', baseWidth: 90, scaleRange: [0.6, 1.2], speed: [1, 3] }
+                { id: 'fish1', src: '../fish/fish1.png', name: 'Tropical Fish', baseWidth: 80, scaleRange: [0.7, 1.3], speed: [1, 2.5] }
             ],
-            ornaments: []
-        };
-
-        const DOM = {
-            aquarium: document.getElementById('aquarium-container'),
-            playMusicBtn: document.getElementById('playMusicBtn'),
-            toggleBubblesBtn: document.getElementById('toggleBubblesBtn'),
-            saveStateBtn: document.getElementById('saveStateBtn'),
-            loadStateBtn: document.getElementById('loadStateBtn'),
-            resetAquariumBtn: document.getElementById('resetAquariumBtn'),
-            fishShop: document.getElementById('fishShopItems'),
-            music: document.getElementById('backgroundMusic'),
-            toasts: document.getElementById('toastContainer')
+            ornaments: [
+                { id: 'ornament1', src: '../ornamen/ornamen1.png', name: 'Coral A', baseWidth: 100, scaleRange: [0.8, 1.5] },
+                { id: 'ornament2', src: '../ornamen/ornamen2.png', name: 'Seaweed', baseWidth: 80, scaleRange: [0.7, 1.2] },
+                { id: 'ornament3', src: '../ornamen/ornamen3.png', name: 'Treasure', baseWidth: 90, scaleRange: [0.9, 1.1] },
+                { id: 'ornament4', src: '../ornamen/ornamen4.png', name: 'Volcano', baseWidth: 120, scaleRange: [1.0, 1.5] }
+            ]
         };
 
         let state = {
@@ -216,124 +237,172 @@
             bubbles: [],
             isMusicPlaying: false,
             bubblesEnabled: true,
-            selectedItem: null
+            selectedItem: null,
+            modalItem: null
         };
 
-        // --- Utils ---
         const showToast = (msg) => {
             const t = document.createElement('div');
             t.className = 'toast';
             t.textContent = msg;
-            DOM.toasts.appendChild(t);
-            setTimeout(() => t.remove(), 2000);
+            document.getElementById('toastContainer').appendChild(t);
+            setTimeout(() => t.remove(), 2500);
         };
 
-        // --- Logic ---
+        const adjustQty = (val) => {
+            const input = document.getElementById('modalQty');
+            let n = parseInt(input.value) + val;
+            input.value = n < 1 ? 1 : n;
+        };
+
+        // --- Controller ---
         const UIController = {
             init() {
-                ASSET_CONFIG.fish.forEach(fish => {
-                    const item = document.createElement('div');
-                    item.className = 'shop-item';
-                    item.innerHTML = `<img src="${fish.src}"><p>${fish.name}</p>`;
-                    item.onclick = () => EntityManager.createFish(fish);
-                    DOM.fishShop.appendChild(item);
-                });
+                this.renderShop();
+                document.getElementById('tabFish').onclick = () => this.switchTab('fish');
+                document.getElementById('tabOrnaments').onclick = () => this.switchTab('ornamen');
+                document.getElementById('playMusicBtn').onclick = () => this.toggleMusic();
+                document.getElementById('toggleBubblesBtn').onclick = () => this.toggleBubbles();
+                document.getElementById('saveStateBtn').onclick = () => Persistence.save();
+                document.getElementById('loadStateBtn').onclick = () => Persistence.load();
+                document.getElementById('resetAquariumBtn').onclick = () => EntityManager.reset();
+                document.getElementById('modalCloseBtn').onclick = () => this.hideModal();
+                document.getElementById('modalAddBtn').onclick = () => this.confirmAdd();
 
-                DOM.playMusicBtn.onclick = this.toggleMusic;
-                DOM.toggleBubblesBtn.onclick = this.toggleBubbles;
-                DOM.saveStateBtn.onclick = Persistence.save;
-                DOM.loadStateBtn.onclick = Persistence.load;
-                DOM.resetAquariumBtn.onclick = EntityManager.reset;
-
-                // Deselect on background click
-                document.body.addEventListener('pointerdown', (e) => {
-                    if (e.target === document.body || e.target === DOM.aquarium) {
+                // Deselect logic
+                document.addEventListener('pointerdown', (e) => {
+                    if (e.target.id === 'aquarium-container') {
                         if (state.selectedItem) state.selectedItem.deselect();
                     }
                 });
             },
+
+            renderShop() {
+                const fishGrid = document.getElementById('fishShopItems');
+                const ornaGrid = document.getElementById('ornamentShopItems');
+
+                ASSET_CONFIG.fish.forEach(f => {
+                    const el = this.createShopEl(f, 'fish');
+                    fishGrid.appendChild(el);
+                });
+
+                ASSET_CONFIG.ornaments.forEach(o => {
+                    const el = this.createShopEl(o, 'ornament');
+                    ornaGrid.appendChild(el);
+                });
+            },
+
+            createShopEl(asset, type) {
+                const div = document.createElement('div');
+                div.className = 'shop-item';
+                div.innerHTML = `<img src="${asset.src}"><small>${asset.name}</small>`;
+                div.onclick = () => this.showModal(asset, type);
+                return div;
+            },
+
+            switchTab(type) {
+                document.getElementById('tabFish').classList.toggle('active', type === 'fish');
+                document.getElementById('tabOrnaments').classList.toggle('active', type === 'ornamen');
+                document.getElementById('fishShopItems').classList.toggle('hidden', type !== 'fish');
+                document.getElementById('ornamentShopItems').classList.toggle('hidden', type !== 'ornamen');
+            },
+
+            showModal(asset, type) {
+                state.modalItem = { asset, type };
+                document.getElementById('modalItemName').textContent = asset.name;
+                document.getElementById('modalItemPreview').src = asset.src;
+                document.getElementById('modalQty').value = 1;
+                document.getElementById('quantityControl').classList.toggle('hidden', type === 'ornament');
+                document.getElementById('itemPreviewModal').classList.remove('hidden');
+            },
+
+            hideModal() {
+                document.getElementById('itemPreviewModal').classList.add('hidden');
+            },
+
+            confirmAdd() {
+                const qty = parseInt(document.getElementById('modalQty').value);
+                for(let i=0; i<qty; i++) {
+                    EntityManager.create(state.modalItem.asset, state.modalItem.type);
+                }
+                showToast(`Added ${qty} ${state.modalItem.asset.name}`);
+                this.hideModal();
+            },
+
             toggleMusic() {
                 state.isMusicPlaying = !state.isMusicPlaying;
+                const audio = document.getElementById('backgroundMusic');
                 if (state.isMusicPlaying) {
-                    DOM.music.play().catch(() => showToast("Click again to enable audio"));
-                    DOM.playMusicBtn.textContent = "🔇 Mute";
+                    audio.play().catch(() => showToast("Interact with page first"));
+                    document.getElementById('playMusicBtn').textContent = "🔇 Mute";
                 } else {
-                    DOM.music.pause();
-                    DOM.playMusicBtn.textContent = "🎵 Music";
+                    audio.pause();
+                    document.getElementById('playMusicBtn').textContent = "🎵 Music";
                 }
             },
+
             toggleBubbles() {
                 state.bubblesEnabled = !state.bubblesEnabled;
-                DOM.toggleBubblesBtn.textContent = state.bubblesEnabled ? "🫧 Bubbles" : "🚫 Bubbles";
+                document.getElementById('toggleBubblesBtn').textContent = state.bubblesEnabled ? "🫧 Bubbles" : "🚫 Bubbles";
                 state.bubbles.forEach(b => b.style.display = state.bubblesEnabled ? 'block' : 'none');
             },
-            // Fixed the missing methods that were causing the crash
+
             setMusicState(playing) {
-                if (playing) {
-                    state.isMusicPlaying = false; 
-                    this.toggleMusic();
-                }
+                if (playing !== state.isMusicPlaying) this.toggleMusic();
             },
+
             setBubblesState(enabled) {
-                if (!enabled) {
-                    state.bubblesEnabled = true;
-                    this.toggleBubbles();
-                }
+                if (enabled !== state.bubblesEnabled) this.toggleBubbles();
             }
         };
 
-        class Fish {
-            constructor(config, savedData = null) {
-                this.config = config;
+        // --- Entity Logic ---
+        class Entity {
+            constructor(asset, type, data = null) {
+                this.asset = asset;
+                this.type = type;
                 this.element = document.createElement('div');
                 this.element.className = 'draggable-item';
                 this.img = document.createElement('img');
-                this.img.src = config.src;
+                this.img.src = asset.src;
                 this.element.appendChild(this.img);
 
-                // Controls
                 this.controls = document.createElement('div');
                 this.controls.className = 'item-controls';
-                const del = document.createElement('button');
-                del.textContent = "🗑️";
-                del.onclick = (e) => { e.stopPropagation(); this.remove(); };
-                this.controls.appendChild(del);
+                this.controls.innerHTML = `<button class="del">🗑️</button>`;
+                this.controls.querySelector('.del').onclick = (e) => { e.stopPropagation(); this.remove(); };
                 this.element.appendChild(this.controls);
 
-                DOM.aquarium.appendChild(this.element);
+                document.getElementById('aquarium-container').appendChild(this.element);
 
-                // State
-                this.x = savedData ? savedData.x : Math.random() * window.innerWidth;
-                this.y = savedData ? savedData.y : Math.random() * window.innerHeight;
-                this.scale = savedData ? savedData.scale : 1;
-                this.dir = Math.random() > 0.5 ? 1 : -1;
-                this.speed = Math.random() * (config.speed[1] - config.speed[0]) + config.speed[0];
+                this.x = data ? data.x : Math.random() * (window.innerWidth - 100);
+                this.y = data ? data.y : Math.random() * (window.innerHeight - 100);
+                this.scale = data ? data.scale : (Math.random() * (asset.scaleRange[1] - asset.scaleRange[0]) + asset.scaleRange[0]);
+                this.dir = data ? data.dir : (Math.random() > 0.5 ? 1 : -1);
+                this.speed = asset.speed ? (Math.random() * (asset.speed[1] - asset.speed[0]) + asset.speed[0]) : 0;
 
-                this.setupEvents();
-                this.update();
+                this.initEvents();
+                this.render();
             }
 
-            setupEvents() {
+            initEvents() {
                 this.element.onpointerdown = (e) => {
                     e.stopPropagation();
                     if (state.selectedItem) state.selectedItem.deselect();
                     state.selectedItem = this;
                     this.element.classList.add('selected');
                     this.isDragging = true;
-                    this.offsetX = e.clientX - this.x;
-                    this.offsetY = e.clientY - this.y;
+                    this.offX = e.clientX - this.x;
+                    this.offY = e.clientY - this.y;
                     this.element.setPointerCapture(e.pointerId);
                 };
-
                 this.element.onpointermove = (e) => {
                     if (!this.isDragging) return;
-                    this.x = e.clientX - this.offsetX;
-                    this.y = e.clientY - this.offsetY;
+                    this.x = e.clientX - this.offX;
+                    this.y = e.clientY - this.offY;
+                    this.render();
                 };
-
-                this.element.onpointerup = () => {
-                    this.isDragging = false;
-                };
+                this.element.onpointerup = () => this.isDragging = false;
             }
 
             deselect() {
@@ -347,27 +416,31 @@
             }
 
             update() {
-                if (!this.isDragging) {
+                if (this.type === 'fish' && !this.isDragging) {
                     this.x += this.speed * this.dir;
                     if (this.x > window.innerWidth) this.dir = -1;
                     if (this.x < -100) this.dir = 1;
-                    this.y += Math.sin(Date.now() * 0.002) * 0.5;
+                    this.render();
                 }
-                this.element.style.width = this.config.baseWidth + 'px';
-                this.element.style.transform = `translate(${this.x}px, ${this.y}px) scaleX(${this.dir})`;
+            }
+
+            render() {
+                this.element.style.width = (this.asset.baseWidth * this.scale) + 'px';
+                const flip = this.type === 'fish' ? `scaleX(${this.dir})` : '';
+                this.element.style.transform = `translate(${this.x}px, ${this.y}px) ${flip}`;
+                this.element.style.zIndex = Math.floor(this.y);
             }
         }
 
         const EntityManager = {
-            createFish(config, data = null) {
-                const f = new Fish(config, data);
-                state.items.push(f);
-                return f;
+            create(asset, type, data = null) {
+                const e = new Entity(asset, type, data);
+                state.items.push(e);
             },
             reset() {
                 state.items.forEach(i => i.element.remove());
                 state.items = [];
-                showToast("Aquarium Reset");
+                showToast("Aquarium Cleared");
             }
         };
 
@@ -376,52 +449,63 @@
                 const data = {
                     music: state.isMusicPlaying,
                     bubbles: state.bubblesEnabled,
-                    fish: state.items.map(i => ({ id: i.config.id, x: i.x, y: i.y, scale: i.scale }))
+                    items: state.items.map(i => ({ id: i.asset.id, type: i.type, x: i.x, y: i.y, scale: i.scale, dir: i.dir }))
                 };
-                localStorage.setItem('aquarium_save', JSON.stringify(data));
-                showToast("Saved!");
+                localStorage.setItem('aqua_premium_save', JSON.stringify(data));
+                showToast("Layout Saved");
             },
             load() {
-                const raw = localStorage.getItem('aquarium_save');
+                const raw = localStorage.getItem('aqua_premium_save');
                 if (!raw) return showToast("No save found");
                 const data = JSON.parse(raw);
                 EntityManager.reset();
-                data.fish.forEach(fData => {
-                    const config = ASSET_CONFIG.fish.find(c => c.id === fData.id);
-                    if (config) EntityManager.createFish(config, fData);
+                data.items.forEach(d => {
+                    const asset = [...ASSET_CONFIG.fish, ...ASSET_CONFIG.ornaments].find(a => a.id === d.id);
+                    if (asset) EntityManager.create(asset, d.type, d);
                 });
                 UIController.setMusicState(data.music);
                 UIController.setBubblesState(data.bubbles);
-                showToast("Loaded!");
+                showToast("Layout Loaded");
             }
         };
 
-        // --- Loop ---
+        // --- Init ---
+        function createBubbles() {
+            for(let i=0; i<15; i++) {
+                const b = document.createElement('div');
+                b.className = 'bubble';
+                const s = Math.random() * 15 + 5;
+                b.style.width = b.style.height = s + 'px';
+                b.style.left = Math.random() * 100 + 'vw';
+                b.style.bottom = '-50px';
+                document.getElementById('aquarium-container').appendChild(b);
+                state.bubbles.push(b);
+                
+                const animate = () => {
+                    const dur = Math.random() * 4000 + 4000;
+                    b.animate([
+                        { transform: `translateY(0) translateX(0)`, opacity: 0.6 },
+                        { transform: `translateY(-110vh) translateX(${Math.random()*50-25}px)`, opacity: 0 }
+                    ], { duration: dur, iterations: Infinity, delay: Math.random() * 5000 });
+                };
+                animate();
+            }
+        }
+
         function loop() {
             state.items.forEach(i => i.update());
             requestAnimationFrame(loop);
         }
 
-        // Init Bubbles
-        for(let i=0; i<20; i++) {
-            const b = document.createElement('div');
-            b.className = 'bubble';
-            const size = Math.random() * 10 + 5;
-            b.style.width = b.style.height = size + 'px';
-            b.style.left = Math.random() * 100 + 'vw';
-            b.style.bottom = '-20px';
-            b.style.transition = `bottom ${Math.random()*5 + 5}s linear, opacity 2s`;
-            DOM.aquarium.appendChild(b);
-            state.bubbles.push(b);
-            
-            setInterval(() => {
-                b.style.bottom = '110vh';
-                setTimeout(() => { b.style.bottom = '-20px'; }, 10000);
-            }, Math.random() * 5000);
-        }
-
         UIController.init();
+        createBubbles();
         loop();
+
+        // Default Fish
+        setTimeout(() => {
+            if (state.items.length === 0) EntityManager.create(ASSET_CONFIG.fish[0], 'fish');
+        }, 500);
+
     </script>
 </body>
 </html>
