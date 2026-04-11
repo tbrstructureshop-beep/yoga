@@ -7,80 +7,101 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
+            /* Light Mode (Default Tropical) */
+            --bg-bright: 0.8;
+            --overlay-color: rgba(0, 70, 150, 0.2);
             --glass-bg: rgba(255, 255, 255, 0.15);
             --glass-border: rgba(255, 255, 255, 0.25);
-            --glass-shadow: rgba(0, 0, 0, 0.25);
-            --text-color-light: #e0f7fa;
+            --text-color: #e0f7fa;
             --primary-accent: #00aaff;
-            --panel-width-desktop: 320px;
-            font-size: 16px;
+            --panel-width: 320px;
+            transition: all 0.5s ease;
+        }
+
+        /* Night Mode Variables */
+        body.night-mode {
+            --bg-bright: 0.3;
+            --overlay-color: rgba(0, 10, 40, 0.7);
+            --glass-bg: rgba(0, 0, 0, 0.6);
+            --glass-border: rgba(0, 255, 255, 0.1);
+            --text-color: #80cbc4;
+            --primary-accent: #006064;
         }
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
             font-family: 'Montserrat', sans-serif;
-            margin: 0;
-            overflow: hidden;
-            background-color: #0a192f;
+            margin: 0; overflow: hidden;
+            background-color: #050b14;
             width: 100vw; height: 100vh;
             display: flex; justify-content: center; align-items: center;
             user-select: none; touch-action: none;
-            color: var(--text-color-light);
+            color: var(--text-color);
         }
 
+        /* Background */
         .aquarium-background {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background-image: url('background/background1.png'); 
-            background-size: cover;
-            background-position: center;
+            background-size: cover; background-position: center;
             z-index: -2;
-            filter: brightness(0.8) saturate(1.2);
+            filter: brightness(var(--bg-bright)) saturate(1.2);
+            transition: filter 1s ease;
         }
 
         .aquarium-overlay {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle at bottom, rgba(0, 70, 150, 0.2) 0%, rgba(0, 0, 0, 0) 70%);
-            z-index: -1;
-            pointer-events: none;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--overlay-color);
+            z-index: -1; pointer-events: none;
+            transition: background 1s ease;
         }
 
         #aquarium-container { position: absolute; width: 100%; height: 100%; overflow: hidden; }
 
+        /* UI Panels Animation */
+        .ui-panel {
+            position: absolute; background: var(--glass-bg); backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border); border-radius: 20px; padding: 15px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5); z-index: 100;
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease;
+        }
+
+        /* Hiding Logic */
+        body.ui-hidden .ui-panel {
+            opacity: 0;
+            pointer-events: none;
+        }
+        body.ui-hidden #dashboard-panel { transform: translate(-50%, 150%); }
+        body.ui-hidden #shop-panel { transform: translate(120%, 0); }
+
+        #dashboard-panel { bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; }
+        #shop-panel { top: 20px; right: 20px; width: var(--panel-width); max-height: 80vh; overflow-y: auto; }
+
+        /* Floating Show UI Button */
+        #showUIBtn {
+            position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px;
+            background: var(--glass-bg); border: 1px solid var(--glass-border);
+            border-radius: 50%; color: white; display: none; align-items: center;
+            justify-content: center; cursor: pointer; z-index: 1000; font-size: 20px;
+        }
+        body.ui-hidden #showUIBtn { display: flex; }
+
+        /* Draggable Items */
         .draggable-item { position: absolute; will-change: transform; cursor: grab; z-index: 10; padding: 5px; }
         .draggable-item.dragging { cursor: grabbing; z-index: 1000 !important; }
-        .draggable-item.selected { border: 1px solid rgba(0, 255, 255, 0.5); background: rgba(0, 255, 255, 0.05); border-radius: 10px; }
+        .draggable-item.selected { border: 1px solid var(--primary-accent); background: rgba(0, 255, 255, 0.05); border-radius: 10px; }
         .draggable-item img { display: block; width: 100%; pointer-events: none; }
 
-        /* Updated Controls for Resize */
         .item-controls {
             position: absolute; top: -55px; left: 50%; transform: translateX(-50%);
             background: var(--glass-bg); backdrop-filter: blur(10px);
             border: 1px solid var(--glass-border); border-radius: 12px;
             padding: 8px 12px; display: flex; align-items: center; gap: 10px; opacity: 0; pointer-events: none;
-            white-space: nowrap;
         }
         .draggable-item.selected .item-controls { opacity: 1; pointer-events: auto; }
         
-        .item-controls button {
-            background: #ff4d4d; border: none; color: white; border-radius: 5px; padding: 4px 8px; cursor: pointer;
-        }
-        
-        .item-controls input[type="range"] {
-            width: 80px; cursor: pointer; accent-color: var(--primary-accent);
-        }
-
-        .ui-panel {
-            position: absolute; background: var(--glass-bg); backdrop-filter: blur(15px);
-            border: 1px solid var(--glass-border); border-radius: 20px; padding: 15px;
-            box-shadow: 0 8px 30px var(--glass-shadow); z-index: 100;
-        }
-
-        #dashboard-panel { bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; }
-        #shop-panel { top: 20px; right: 20px; width: var(--panel-width-desktop); max-height: 80vh; overflow-y: auto; }
-
+        /* Shop Styles */
         .shop-tabs { display: flex; gap: 5px; margin-bottom: 15px; }
         .shop-tabs button {
             flex: 1; padding: 8px; background: rgba(255,255,255,0.1);
@@ -93,23 +114,27 @@
             background: rgba(255,255,255,0.05); border-radius: 10px; padding: 5px;
             cursor: pointer; text-align: center; transition: 0.2s;
         }
-        .shop-item:hover { background: rgba(255,255,255,0.15); transform: translateY(-3px); }
-        .shop-item img { width: 100%; height: auto; max-height: 60px; object-fit: contain; margin: 0 auto; }
+        .shop-item img { width: 100%; height: auto; max-height: 50px; object-fit: contain; }
         .hidden { display: none !important; }
 
+        /* General Buttons */
+        button { cursor: pointer; font-family: inherit; border: none; padding: 8px 12px; border-radius: 8px; font-weight: 600; }
+        .btn-main { background: var(--primary-accent); color: white; }
+        .btn-dark { background: rgba(255,255,255,0.1); color: white; border: 1px solid var(--glass-border); }
+
+        /* Bubbles */
         .bubble { position: absolute; background: rgba(255, 255, 255, 0.3); border-radius: 50%; pointer-events: none; z-index: 1; }
 
         .item-preview-modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6); backdrop-filter: blur(5px);
+            background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
             display: flex; justify-content: center; align-items: center; z-index: 2000;
         }
-        .modal-content { background: #1a3a5a; padding: 30px; border-radius: 20px; text-align: center; border: 1px solid var(--primary-accent); }
+        .modal-content { background: var(--glass-bg); padding: 30px; border-radius: 20px; text-align: center; border: 1px solid var(--primary-accent); }
         .modal-item-preview-img { max-width: 150px; margin: 20px 0; }
+
         .toast-container { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 3000; }
         .toast { background: rgba(0,0,0,0.8); color: white; padding: 10px 20px; border-radius: 20px; margin-bottom: 5px; }
-
-        button { cursor: pointer; font-family: inherit; }
     </style>
 </head>
 <body>
@@ -118,16 +143,22 @@
     <div class="aquarium-overlay"></div>
     <div id="aquarium-container"></div>
 
+    <!-- Floating Show UI Button -->
+    <div id="showUIBtn">👁️</div>
+
+    <!-- Dashboard -->
     <div id="dashboard-panel" class="ui-panel">
-        <button id="playMusicBtn">🎵 Music</button>
-        <button id="toggleBubblesBtn">🫧 Bubbles</button>
-        <button id="saveStateBtn">💾 Save</button>
-        <button id="loadStateBtn">📂 Load</button>
-        <button id="resetAquariumBtn" style="background: rgba(255,0,0,0.3);">🗑️ Reset</button>
+        <button class="btn-dark" id="toggleNightBtn">🌙 Night</button>
+        <button class="btn-dark" id="playMusicBtn">🎵 Music</button>
+        <button class="btn-dark" id="toggleBubblesBtn">🫧 Bubbles</button>
+        <button class="btn-dark" id="saveStateBtn">💾 Save</button>
+        <button class="btn-dark" id="hideUIBtn">🙈 Hide UI</button>
+        <button class="btn-dark" id="resetAquariumBtn" style="color:#ff4d4d;">🗑️ Reset</button>
     </div>
 
+    <!-- Shop -->
     <div id="shop-panel" class="ui-panel">
-        <h3 style="margin-bottom: 10px; font-family: Orbitron;">Aquarium Shop</h3>
+        <h3 style="margin-bottom: 10px; font-family: Orbitron;">Shop</h3>
         <div class="shop-tabs">
             <button id="tabFish" class="active">Fish</button>
             <button id="tabOrnaments">Ornaments</button>
@@ -136,18 +167,19 @@
         <div id="ornamentShopItems" class="shop-items-grid hidden"></div>
     </div>
 
+    <!-- Modal -->
     <div id="itemPreviewModal" class="item-preview-modal hidden">
         <div class="modal-content">
             <h2 id="modalItemName" style="font-family: Orbitron;">Item Name</h2>
             <img id="modalItemPreview" class="modal-item-preview-img">
             <div id="quantityControl" style="margin-bottom: 20px;">
-                <button onclick="adjustQty(-1)">-</button>
+                <button class="btn-dark" onclick="adjustQty(-1)">-</button>
                 <input type="number" id="modalQty" value="1" style="width: 50px; text-align: center; background: none; color: white; border: 1px solid white;">
-                <button onclick="adjustQty(1)">+</button>
+                <button class="btn-dark" onclick="adjustQty(1)">+</button>
             </div>
             <div style="display: flex; gap: 10px; justify-content: center;">
-                <button id="modalAddBtn" style="background: var(--primary-accent); color: white; padding: 10px 20px; border:none; border-radius:5px;">Add</button>
-                <button id="modalCloseBtn" style="background: #444; color: white; padding: 10px 20px; border:none; border-radius:5px;">Cancel</button>
+                <button class="btn-main" id="modalAddBtn">Add</button>
+                <button class="btn-dark" id="modalCloseBtn">Cancel</button>
             </div>
         </div>
     </div>
@@ -159,7 +191,7 @@
     <script>
         const ASSET_CONFIG = {
             fish: [
-                { id: 'fish1', src: 'fish/fish1.png', name: 'Tropical Fish', baseWidth: 100, scaleRange: [0.5, 2.0], speed: [1, 2.5] }
+                { id: 'fish1', src: 'fish/fish1.png', name: 'Neon Fish', baseWidth: 100, scaleRange: [0.5, 2.0], speed: [1, 2.5] }
             ],
             ornaments: [
                 { id: 'ornament1', src: 'ornamen/ornamen1.png', name: 'Coral A', baseWidth: 120, scaleRange: [0.5, 2.5] },
@@ -174,6 +206,8 @@
             bubbles: [],
             isMusicPlaying: false,
             bubblesEnabled: true,
+            nightMode: false,
+            uiHidden: false,
             selectedItem: null,
             modalItem: null
         };
@@ -199,8 +233,10 @@
                 document.getElementById('tabOrnaments').onclick = () => this.switchTab('ornamen');
                 document.getElementById('playMusicBtn').onclick = () => this.toggleMusic();
                 document.getElementById('toggleBubblesBtn').onclick = () => this.toggleBubbles();
+                document.getElementById('toggleNightBtn').onclick = () => this.toggleNight();
+                document.getElementById('hideUIBtn').onclick = () => this.toggleUI(true);
+                document.getElementById('showUIBtn').onclick = () => this.toggleUI(false);
                 document.getElementById('saveStateBtn').onclick = () => Persistence.save();
-                document.getElementById('loadStateBtn').onclick = () => Persistence.load();
                 document.getElementById('resetAquariumBtn').onclick = () => EntityManager.reset();
                 document.getElementById('modalCloseBtn').onclick = () => this.hideModal();
                 document.getElementById('modalAddBtn').onclick = () => this.confirmAdd();
@@ -234,6 +270,19 @@
                 document.getElementById('ornamentShopItems').classList.toggle('hidden', type !== 'ornamen');
             },
 
+            toggleUI(hide) {
+                state.uiHidden = hide;
+                document.body.classList.toggle('ui-hidden', hide);
+                if(hide) showToast("UI Hidden. Click Eye to restore.");
+            },
+
+            toggleNight() {
+                state.nightMode = !state.nightMode;
+                document.body.classList.toggle('night-mode', state.nightMode);
+                document.getElementById('toggleNightBtn').textContent = state.nightMode ? "☀️ Day" : "🌙 Night";
+                showToast(state.nightMode ? "Deep Sea Mode Active" : "Tropical Mode Active");
+            },
+
             showModal(asset, type) {
                 state.modalItem = { asset, type };
                 document.getElementById('modalItemName').textContent = asset.name;
@@ -248,20 +297,14 @@
             confirmAdd() {
                 const qty = parseInt(document.getElementById('modalQty').value);
                 for(let i=0; i<qty; i++) EntityManager.create(state.modalItem.asset, state.modalItem.type);
-                showToast(`Added ${qty} ${state.modalItem.asset.name}`);
                 this.hideModal();
             },
 
             toggleMusic() {
                 state.isMusicPlaying = !state.isMusicPlaying;
                 const audio = document.getElementById('backgroundMusic');
-                if (state.isMusicPlaying) {
-                    audio.play().catch(() => showToast("Interact with page first"));
-                    document.getElementById('playMusicBtn').textContent = "🔇 Mute";
-                } else {
-                    audio.pause();
-                    document.getElementById('playMusicBtn').textContent = "🎵 Music";
-                }
+                if (state.isMusicPlaying) { audio.play(); document.getElementById('playMusicBtn').textContent = "🔇 Mute"; }
+                else { audio.pause(); document.getElementById('playMusicBtn').textContent = "🎵 Music"; }
             },
 
             toggleBubbles() {
@@ -273,78 +316,54 @@
 
         class Entity {
             constructor(asset, type, data = null) {
-                this.asset = asset;
-                this.type = type;
+                this.asset = asset; this.type = type;
                 this.element = document.createElement('div');
                 this.element.className = 'draggable-item';
-                
                 this.img = document.createElement('img');
                 this.img.src = asset.src;
                 this.element.appendChild(this.img);
                 
-                // Controls
                 this.controls = document.createElement('div');
                 this.controls.className = 'item-controls';
-                
-                // Trash Button
                 const delBtn = document.createElement('button');
-                delBtn.innerHTML = '🗑️';
+                delBtn.innerHTML = '🗑️'; delBtn.style.background="#ff4d4d";
                 delBtn.onclick = (e) => { e.stopPropagation(); this.remove(); };
-                
-                // Size Slider
                 const slider = document.createElement('input');
-                slider.type = 'range';
-                slider.min = asset.scaleRange[0];
-                slider.max = asset.scaleRange[1];
-                slider.step = '0.1';
+                slider.type = 'range'; slider.min = asset.scaleRange[0]; slider.max = asset.scaleRange[1]; slider.step = '0.1';
                 slider.value = data ? data.scale : 1;
-                slider.oninput = (e) => { 
-                    this.scale = parseFloat(e.target.value); 
-                    this.render(); 
-                };
-                slider.onpointerdown = (e) => e.stopPropagation(); // Prevents dragging when using slider
+                slider.oninput = (e) => { this.scale = parseFloat(e.target.value); this.render(); };
+                slider.onpointerdown = (e) => e.stopPropagation();
 
-                this.controls.appendChild(delBtn);
-                this.controls.appendChild(slider);
+                this.controls.appendChild(delBtn); this.controls.appendChild(slider);
                 this.element.appendChild(this.controls);
-                
                 document.getElementById('aquarium-container').appendChild(this.element);
 
-                // Movement / Position
                 this.x = data ? data.x : Math.random() * (window.innerWidth - 100);
                 this.y = data ? data.y : Math.random() * (window.innerHeight - 100);
                 this.scale = data ? data.scale : 1;
                 this.dir = data ? data.dir : (Math.random() > 0.5 ? 1 : -1);
                 this.speed = asset.speed ? (Math.random() * (asset.speed[1] - asset.speed[0]) + asset.speed[0]) : 0;
-                
-                this.initEvents();
-                this.render();
+                this.initEvents(); this.render();
             }
 
             initEvents() {
                 this.element.onpointerdown = (e) => {
-                    if (e.target.tagName === 'INPUT') return; // Allow slider interaction
+                    if (e.target.tagName === 'INPUT') return;
                     e.stopPropagation();
                     if (state.selectedItem) state.selectedItem.deselect();
-                    state.selectedItem = this;
-                    this.element.classList.add('selected');
-                    this.isDragging = true;
-                    this.offX = e.clientX - this.x;
-                    this.offY = e.clientY - this.y;
+                    state.selectedItem = this; this.element.classList.add('selected');
+                    this.isDragging = true; this.offX = e.clientX - this.x; this.offY = e.clientY - this.y;
                     this.element.setPointerCapture(e.pointerId);
                 };
                 this.element.onpointermove = (e) => {
                     if (!this.isDragging) return;
-                    this.x = e.clientX - this.offX;
-                    this.y = e.clientY - this.offY;
-                    this.render();
+                    this.x = e.clientX - this.offX; this.y = e.clientY - this.offY; this.render();
                 };
                 this.element.onpointerup = () => this.isDragging = false;
             }
 
             deselect() { this.element.classList.remove('selected'); state.selectedItem = null; }
             remove() { this.element.remove(); state.items = state.items.filter(i => i !== this); }
-            
             update() {
                 if (this.type === 'fish' && !this.isDragging) {
                     this.x += this.speed * this.dir;
@@ -353,18 +372,9 @@
                     this.render();
                 }
             }
-
             render() {
                 this.element.style.width = (this.asset.baseWidth * this.scale) + 'px';
-                
-                /** 
-                 * FISH DIRECTION LOGIC:
-                 * If 'dir' is 1 (moving right), we flip the image.
-                 * If 'dir' is -1 (moving left), we keep normal scale.
-                 * NOTE: If your fish swims backward still, change 'this.dir' to '-this.dir' below.
-                 **/
                 const flip = this.type === 'fish' ? `scaleX(${this.dir * -1})` : '';
-                
                 this.element.style.transform = `translate(${this.x}px, ${this.y}px) ${flip}`;
                 this.element.style.zIndex = Math.floor(this.y);
             }
@@ -378,23 +388,11 @@
         const Persistence = {
             save() {
                 const data = {
-                    music: state.isMusicPlaying,
-                    bubbles: state.bubblesEnabled,
+                    night: state.nightMode,
                     items: state.items.map(i => ({ id: i.asset.id, type: i.type, x: i.x, y: i.y, scale: i.scale, dir: i.dir }))
                 };
-                localStorage.setItem('aqua_premium_save', JSON.stringify(data));
-                showToast("Layout Saved");
-            },
-            load() {
-                const raw = localStorage.getItem('aqua_premium_save');
-                if (!raw) return showToast("No save found");
-                const data = JSON.parse(raw);
-                EntityManager.reset();
-                data.items.forEach(d => {
-                    const asset = [...ASSET_CONFIG.fish, ...ASSET_CONFIG.ornaments].find(a => a.id === d.id);
-                    if (asset) EntityManager.create(asset, d.type, d);
-                });
-                showToast("Layout Loaded");
+                localStorage.setItem('aqua_save_v2', JSON.stringify(data));
+                showToast("Saved Successfully");
             }
         };
 
@@ -413,14 +411,9 @@
             }
         }
 
-        function loop() {
-            state.items.forEach(i => i.update());
-            requestAnimationFrame(loop);
-        }
+        function loop() { state.items.forEach(i => i.update()); requestAnimationFrame(loop); }
 
-        UIController.init();
-        createBubbles();
-        loop();
+        UIController.init(); createBubbles(); loop();
         setTimeout(() => { if (state.items.length === 0) EntityManager.create(ASSET_CONFIG.fish[0], 'fish'); }, 500);
     </script>
 </body>
